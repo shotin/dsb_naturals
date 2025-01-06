@@ -71,14 +71,13 @@ const Navbar = () => {
             <div className="profile-icon me-3">
               <FaUserCircle
                 className="text-light"
-                style={{ fontSize: "1.5rem" }}
+                style={{ fontSize: "1.5rem", cursor: "pointer" }}
               />
             </div>
 
             <div onClick={handleOpen} className="login-text btn btn-light">
               <a
                 style={{ textDecoration: "none" }}
-                href="#"
                 className="text-dark fw-bolder"
               >
                 Login

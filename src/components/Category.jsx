@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../assets/css/category.css";
 import { images } from "../constants";
 import { toast } from "react-toastify";
@@ -22,6 +23,8 @@ const products = [
     id: 1,
     name: "Sunscreen SPF 50",
     category: 1,
+    description:
+      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
     price: "₦10,000",
     image: images.kooo,
   },
@@ -29,6 +32,8 @@ const products = [
     id: 2,
     name: "Advanced Sunscreen",
     category: 1,
+    description:
+      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
     price: "₦12,000",
     image: images.kooo,
   },
@@ -36,6 +41,8 @@ const products = [
     id: 3,
     name: "Charcoal Face Mask",
     category: 2,
+    description:
+      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
     price: "₦25,000",
     image: images.kooo,
   },
@@ -43,6 +50,8 @@ const products = [
     id: 4,
     name: "Under Eye Gel",
     category: 3,
+    description:
+      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
     price: "₦8,000",
     image: images.kooo,
   },
@@ -50,6 +59,8 @@ const products = [
     id: 5,
     name: "Hydrating Moisturizer",
     category: 4,
+    description:
+      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
     price: "₦15,000",
     image: images.kooo,
   },
@@ -57,6 +68,8 @@ const products = [
     id: 6,
     name: "Daily Moisturizer",
     category: 4,
+    description:
+      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
     price: "₦18,000",
     image: images.kooo,
   },
@@ -67,7 +80,7 @@ const Category = () => {
   const [cart, setCart] = useState(
     JSON.parse(localStorage.getItem("cart")) || {}
   );
-
+  const navigate = useNavigate();
   const filteredProducts =
     selectedCategory === 11
       ? products
@@ -119,6 +132,10 @@ const Category = () => {
   const getProductQuantity = (productId) => {
     return cart[productId] ? cart[productId].quantity : 0;
   };
+  const handleViewProduct = (productId) => {
+    const product = products.find((prod) => prod.id === productId);
+    navigate(`/product/${productId}`, { state: { product } });
+  };
 
   return (
     <div className="container category-list-container">
@@ -147,13 +164,18 @@ const Category = () => {
           filteredProducts.map((product) => (
             <div key={product.id} className="col-6 col-md-3 mb-4">
               <div className="product-card">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="product-image img-fluid"
-                />
-                <h4 className="product-title">{product.name}</h4>
-                <p className="product-price">{product.price}</p>
+                <div
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleViewProduct(product.id)}
+                >
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="product-image img-fluid"
+                  />
+                  <h4 className="product-title">{product.name}</h4>
+                  <p className="product-price">{product.price}</p>
+                </div>
 
                 {!cart[product.id] ? (
                   <button
