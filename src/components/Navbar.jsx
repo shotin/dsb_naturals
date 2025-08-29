@@ -9,15 +9,25 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [cart, setCart] = useState(() => {
-    // Get cart from localStorage or default to an empty array
     const savedCart = JSON.parse(localStorage.getItem("cart"));
     return savedCart ? Object.values(savedCart) : [];
   });
 
   const [cartLength, setCartLength] = useState(cart.length);
+  const [user, setUser] = useState(() => {
+    // Get user from localStorage when component mounts
+    return JSON.parse(localStorage.getItem("user")) || null;
+  });
 
   const handleClose = () => setIsOpen(false);
   const handleOpen = () => setIsOpen(true);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    navigate("/"); // redirect to home or wherever
+  };
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -32,6 +42,14 @@ const Navbar = () => {
     setCartLength(cart.length);
   }, [cart]);
 
+  useEffect(() => {
+    const syncUser = () => {
+      setUser(JSON.parse(localStorage.getItem("user")) || null);
+    };
+    window.addEventListener("storage", syncUser);
+    return () => window.removeEventListener("storage", syncUser);
+  }, []);
+
   return (
     <>
       <nav className="app__bg-home navbar navbar-expand-md navbar-dark position-absolute mb-5 top-0 right-0 p-3 me-4 w-100">
@@ -42,10 +60,10 @@ const Navbar = () => {
             onClick={() => navigate("/")}
           >
             <img
-              src={images.logo}
+              src={images.dsp}
               alt="Luminé Naturals Logo"
-              className="w-10 h-10 rounded-circle"
-              style={{ maxWidth: "40px", maxHeight: "40px" }}
+              className="w-20 h-20 rounded-circle"
+              style={{ maxWidth: "60px", maxHeight: "60px" }}
             />
             <span className="ms-2 fw-bolder text-xl">
               DSP <br /> NATURAL
@@ -68,26 +86,40 @@ const Navbar = () => {
               )}
             </div>
 
-            <div className="profile-icon me-3">
-              <FaUserCircle
-                className="text-light"
-                style={{ fontSize: "1.5rem", cursor: "pointer" }}
-              />
-            </div>
-
-            <div onClick={handleOpen} className="login-text btn btn-light">
-              <a
-                style={{ textDecoration: "none" }}
-                className="text-dark fw-bolder"
-              >
-                Login
-              </a>
-            </div>
+            {/* Switch between Login and Logout */}
+            {user ? (
+              <>
+                <div className="profile-icon me-3"   onClick={() => navigate("/profile")}>
+                  <FaUserCircle
+                    className="text-light"
+                    style={{ fontSize: "1.5rem", cursor: "pointer" }}
+                  />
+                </div>
+                <div
+                  onClick={handleLogout}
+                  className="login-text btn btn-danger"
+                >
+                  <span className="fw-bolder">Logout</span>
+                </div>
+              </>
+            ) : (
+              <div onClick={handleOpen} className="login-text btn btn-light">
+                <span className="text-dark fw-bolder">Login</span>
+              </div>
+            )}
           </div>
         </div>
       </nav>
+
+      {/* Login Modal */}
       <BModal keyboard={false} show={isOpen} onHide={handleClose} size="md">
-        <Login onClose={handleClose} />
+        <Login
+          onClose={() => {
+            handleClose();
+            // Refresh user after login
+            setUser(JSON.parse(localStorage.getItem("user")) || null);
+          }}
+        />
       </BModal>
     </>
   );

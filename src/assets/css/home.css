@@ -56,3 +56,15 @@ h1 {
     border-radius: 20px;
     padding: 10px 20px;  
 }
+
+.nav-tabs .nav-link {
+  color: #0d6efd !important;   /* primary blue text */
+  border: none !important;     /* remove Bootstrap’s gray borders */
+}
+
+.nav-tabs .nav-link.active {
+  background-color: #0d6efd !important; /* primary blue */
+  color: #fff !important;               /* white text */
+  border: none !important;
+}
+

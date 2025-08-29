@@ -36,8 +36,7 @@ const Cart = () => {
 
   const calculateTotal = () => {
     const total = Object.values(cartItems).reduce(
-      (acc, item) =>
-        acc + parseFloat(item.price.replace(/,/g, "")) * item.quantity,
+      (acc, item) => acc + Number(item.price) * item.quantity,
       0
     );
     return `₦ ${total.toLocaleString("en-NG", {
@@ -45,6 +44,7 @@ const Cart = () => {
       maximumFractionDigits: 2,
     })}`;
   };
+
   const navigate = useNavigate();
   return (
     <>
@@ -129,7 +129,14 @@ const Cart = () => {
               <button
                 className="btn fw-bolder w-100 mt-4"
                 style={{ background: "#cedfc3" }}
-                onClick={() => navigate("/checkout")}
+                onClick={() => {
+                  const user = JSON.parse(localStorage.getItem("user"));
+                  if (!user) {
+                    toast.error("Please login before proceeding to checkout.");
+                  } else {
+                    navigate("/checkout");
+                  }
+                }}
               >
                 PROCEED TO CHECKOUT
               </button>

@@ -1,100 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../assets/css/category.css";
-import { images } from "../constants";
 import { toast } from "react-toastify";
-
-const categories = [
-  { id: 11, name: "All" },
-  { id: 1, name: "Sunscreen" },
-  { id: 2, name: "Masks" },
-  { id: 3, name: "Eye Care" },
-  { id: 4, name: "Moisturizers" },
-  { id: 5, name: "Soaps" },
-  { id: 6, name: "Lotions" },
-  { id: 7, name: "Body Cream" },
-  { id: 8, name: "Serums" },
-  { id: 9, name: "Oils" },
-  { id: 10, name: "Acne Sets" },
-];
-
-const products = [
-  {
-    id: 1,
-    name: "Sunscreen SPF 50",
-    category: 1,
-    description:
-      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
-    price: "₦10,000",
-    image: images.kooo,
-  },
-  {
-    id: 2,
-    name: "Advanced Sunscreen",
-    category: 1,
-    description:
-      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
-    price: "₦12,000",
-    image: images.kooo,
-  },
-  {
-    id: 3,
-    name: "Charcoal Face Mask",
-    category: 2,
-    description:
-      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
-    price: "₦25,000",
-    image: images.kooo,
-  },
-  {
-    id: 4,
-    name: "Under Eye Gel",
-    category: 3,
-    description:
-      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
-    price: "₦8,000",
-    image: images.kooo,
-  },
-  {
-    id: 5,
-    name: "Hydrating Moisturizer",
-    category: 4,
-    description:
-      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
-    price: "₦15,000",
-    image: images.kooo,
-  },
-  {
-    id: 6,
-    name: "Daily Moisturizer",
-    category: 4,
-    description:
-      "Protect your skin from harmful UV rays with our Sunscreen SPF 50. Specially formulated to offer broad-spectrum protection, this sunscreen shields your skin from both UVA and UVB rays, preventing sunburn, premature aging, and damage caused by prolonged sun exposure. With a lightweight and non-greasy formula, it absorbs quickly into the skin, leaving it feeling soft and smooth. Ideal for daily use, it is suitable for all skin types, including sensitive skin. Stay protected and enjoy the sun with confidence!",
-    price: "₦18,000",
-    image: images.kooo,
-  },
-];
+import { HTTP } from "../utils";
 
 const Category = () => {
-  const [selectedCategory, setSelectedCategory] = useState(11);
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState(
     JSON.parse(localStorage.getItem("cart")) || {}
   );
   const navigate = useNavigate();
-  const filteredProducts =
-    selectedCategory === 11
-      ? products
-      : products.filter((product) => product.category === selectedCategory);
+  const IMAGE_BASE_URL = "https://dspnaturals.com/api/public/storage/images/";
 
+  // 🔹 Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await HTTP.get("/categories");
+        let backendCategories = res.data;
+
+        // remove duplicate "All" if backend already has it
+        backendCategories = backendCategories.filter(
+          (cat) => cat.name.toLowerCase() !== "all"
+        );
+
+        // Add "All" manually at the top
+        setCategories([{ id: "all", name: "All" }, ...backendCategories]);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        toast.error("Failed to load categories!");
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // 🔹 Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await HTTP.get("/products");
+
+        setProducts(res?.data?.data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast.error("Failed to load products!");
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // 🔹 Filter products based on category
+  const filteredProducts =
+    selectedCategory === "all"
+      ? products
+      : products.filter((product) => product.category_id === selectedCategory);
+
+  // 🔹 Cart Handlers
   const handleAddToCart = (product) => {
     const updatedCart = { ...cart };
     if (updatedCart[product.id]) {
       updatedCart[product.id].quantity += 1;
     } else {
-      const priceWithoutNaira = product.price.replace("₦", "").trim();
       updatedCart[product.id] = {
         ...product,
-        price: priceWithoutNaira,
+        image: `${IMAGE_BASE_URL}${product.image}`, 
         quantity: 1,
       };
     }
@@ -109,7 +82,6 @@ const Category = () => {
       updatedCart[product.id].quantity += 1;
       setCart(updatedCart);
       localStorage.setItem("cart", JSON.stringify(updatedCart));
-      toast.success(`${product.name} updated successfully!`);
     }
   };
 
@@ -117,21 +89,16 @@ const Category = () => {
     const updatedCart = { ...cart };
     if (updatedCart[product.id] && updatedCart[product.id].quantity > 1) {
       updatedCart[product.id].quantity -= 1;
-      setCart(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
-      toast.success(`${product.name} updated successfully!`);
-    } else if (updatedCart[product.id]) {
-      // Remove item from cart if quantity is 1 and minus is clicked
+    } else {
       delete updatedCart[product.id];
-      setCart(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
-      toast.success(`${product.name} removed from cart!`);
     }
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
-  const getProductQuantity = (productId) => {
-    return cart[productId] ? cart[productId].quantity : 0;
-  };
+  const getProductQuantity = (productId) =>
+    cart[productId] ? cart[productId].quantity : 0;
+
   const handleViewProduct = (productId) => {
     const product = products.find((prod) => prod.id === productId);
     navigate(`/product/${productId}`, { state: { product } });
@@ -145,6 +112,8 @@ const Category = () => {
       >
         CATEGORIES
       </h1>
+
+      {/* 🔹 Categories */}
       <div className="categories">
         {categories.map((category) => (
           <button
@@ -159,6 +128,7 @@ const Category = () => {
         ))}
       </div>
 
+      {/* 🔹 Products */}
       <div className="row">
         {filteredProducts.length > 0 ? (
           filteredProducts.map((product) => (
@@ -169,12 +139,12 @@ const Category = () => {
                   onClick={() => handleViewProduct(product.id)}
                 >
                   <img
-                    src={product.image}
+                    src={`${IMAGE_BASE_URL}${product.image}`}
                     alt={product.name}
                     className="product-image img-fluid"
                   />
                   <h4 className="product-title">{product.name}</h4>
-                  <p className="product-price">{product.price}</p>
+                  <p className="product-price">₦{product.price}</p>
                 </div>
 
                 {!cart[product.id] ? (

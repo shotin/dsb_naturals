@@ -6,38 +6,16 @@ import Footer from "./Footer";
 import Navbar from "./Navbar";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { HTTP } from "../utils";
 
 const Checkout = () => {
   const [cartItems, setCartItems] = useState({});
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [useSavedAddress, setUseSavedAddress] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  useEffect(() => {
-    const cartFromStorage = JSON.parse(localStorage.getItem("cart")) || {};
-    setCartItems(cartFromStorage);
-
-    const addresses = JSON.parse(localStorage.getItem("savedAddresses")) || [];
-    setSavedAddresses(addresses);
-
-    // If there are saved addresses, use the first one by default
-    if (addresses.length > 0) {
-      setUseSavedAddress(true);
-    }
-  }, []);
-
-  const calculateSubtotal = () => {
-    return Object.values(cartItems).reduce(
-      (acc, item) =>
-        acc + parseFloat(item.price.replace(/,/g, "")) * item.quantity,
-      0
-    );
-  };
-
-  const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    return subtotal + deliveryFee;
-  };
 
   const schema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Email is required"),
@@ -59,34 +37,108 @@ const Checkout = () => {
     handleSubmit,
     control,
     setValue,
-    resetField,
     reset,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
   });
 
-  const handleSavedAddressSelect = (value) => {
-    if (value) {
-      const selectedAddress = JSON.parse(value);
-      setValue("firstName", selectedAddress.firstName);
-      setValue("lastName", selectedAddress.lastName);
-      setValue("address", selectedAddress.address);
-    } else {
-      resetField("firstName");
-      resetField("lastName");
-      resetField("address");
+  useEffect(() => {
+    const cartFromStorage = JSON.parse(localStorage.getItem("cart")) || {};
+    setCartItems(cartFromStorage);
+
+    const addresses = JSON.parse(localStorage.getItem("savedAddresses")) || [];
+    setSavedAddresses(addresses);
+
+    // Autofill first saved address if available
+    if (addresses.length > 0) {
+      const addr = addresses[0];
+      setUseSavedAddress(true);
+      setValue("firstName", addr.firstName);
+      setValue("lastName", addr.lastName);
+      setValue("address", addr.address);
+      setValue("email", addr.email);
+      setValue("phone", addr.phone);
     }
+  }, [setValue]);
+
+  const calculateSubtotal = () => {
+    return Object.values(cartItems).reduce(
+      (acc, item) => acc + Number(item.price) * item.quantity,
+      0
+    );
   };
 
-  const onSubmit = (data) => {
-    if (data.saveAddress) {
-      const newSavedAddresses = [...savedAddresses, data];
-      setSavedAddresses(newSavedAddresses);
-      localStorage.setItem("savedAddresses", JSON.stringify(newSavedAddresses));
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    return subtotal + deliveryFee;
+  };
+
+  const deliveryOptions = [
+    { id: "1", label: "Ikorodu Area", fee: 3000 },
+    { id: "9", label: "Mainland", fee: 4000 },
+    { id: "2", label: "Sango", fee: 8000 },
+    { id: "4", label: "Lekki axis", fee: 5000 },
+    { id: "5", label: "Ajah", fee: 12000 },
+    { id: "6", label: "Sangotedo", fee: 7000 },
+  ];
+
+  const onSubmit = async (data) => {
+    const selectedDelivery = deliveryOptions.find(
+      (opt) => opt.id === data.delivery
+    );
+    setLoading(true);
+    try {
+      const payload = {
+        email: data.email,
+        phone_number: data.phone,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        address: data.address,
+        delivery_area: selectedDelivery ? selectedDelivery.label : null,
+        delivery_cost: deliveryFee,
+        subtotal: calculateSubtotal(),
+        total: calculateTotal(),
+        cart_items: Object.values(cartItems).map((item) => ({
+          id: item.id,
+          category_id: item.category_id,
+          description: item.description,
+          name: item.name,
+          price: Number(item.price),
+          quantity: item.quantity,
+          image: item.image,
+          category: item.category,
+        })),
+      };
+
+      const token = localStorage.getItem("token"); // or however you store it
+
+      const res = await HTTP.post("/user/checkouts", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (res.status === 200 || res.status === 201) {
+        toast.success("Checkout info saved, redirecting to payment...");
+
+        // Save address if requested
+        if (data.saveAddress) {
+          const newSavedAddresses = [data]; // Always keep only 1 saved address
+          setSavedAddresses(newSavedAddresses);
+          localStorage.setItem(
+            "savedAddresses",
+            JSON.stringify(newSavedAddresses)
+          );
+        }
+
+        initiatePayment(data);
+      }
+    } catch (error) {
+      toast.error("Failed to save checkout info. Please try again.");
+      setLoading(false);
     }
-    // console.log("Form Data Submitted:", data);
-    initiatePayment(data);
   };
 
   const initiatePayment = (formData) => {
@@ -106,16 +158,17 @@ const Checkout = () => {
         ],
       },
       callback: function (response) {
-        // toast.success("Payment successful! Reference");
         toast.success("Payment successful! Reference: " + response.reference);
         localStorage.removeItem("cart");
         setCartItems({});
         reset();
         setDeliveryFee(0);
+        setLoading(false);
         navigate("/");
       },
       onClose: function () {
         toast.success("Payment window closed.");
+        setLoading(false);
       },
     });
 
@@ -125,6 +178,20 @@ const Checkout = () => {
   const handleDeliveryChange = (fee) => {
     setDeliveryFee(fee);
   };
+
+  useEffect(() => {
+    // Fetch user from localStorage if logged in
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+
+      // Prefill values into the form
+      setValue("email", parsedUser.email);
+      setValue("phone", parsedUser.phone_number);
+    }
+  }, [setValue]);
+
   return (
     <>
       <Navbar />
@@ -132,12 +199,15 @@ const Checkout = () => {
         className="container py-4 fw-bolder"
         style={{ marginTop: "150px", marginBottom: "70px" }}
       >
-        <h1 className="fw-bolder fs-4">CHECKOUT (10)</h1>
+        <h1 className="fw-bolder fs-4">
+          CHECKOUT ({Object.keys(cartItems).length})
+        </h1>
         <p className="text-secondary">Checkout your order seamlessly.</p>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="row mt-4">
             <div className="col-lg-8">
+              {/* Contact */}
               <div className="card p-4 mb-4">
                 <h2 className="fw-medium mb-3">CONTACT</h2>
                 <div className="row g-3">
@@ -150,9 +220,11 @@ const Checkout = () => {
                       id="email"
                       className="form-control"
                       {...register("email")}
+                      readOnly={!!user} // make read-only if user exists
                     />
                     <p className="text-danger">{errors.email?.message}</p>
                   </div>
+
                   <div className="col-md-6">
                     <label htmlFor="phone" className="form-label">
                       Phone Number *
@@ -163,12 +235,14 @@ const Checkout = () => {
                       maxLength="11"
                       className="form-control"
                       {...register("phone")}
+                      readOnly={!!user} // make read-only if user exists
                     />
                     <p className="text-danger">{errors.phone?.message}</p>
                   </div>
                 </div>
               </div>
 
+              {/* Delivery Address */}
               <div className="card p-4 mb-4">
                 <h2 className="fw-medium mb-3">DELIVERY ADDRESS</h2>
 
@@ -191,10 +265,7 @@ const Checkout = () => {
                     </button>
                   </div>
                 ) : (
-                  /* Form Section */
                   <div className="card p-4 mb-4">
-                    <h2 className="fw-medium mb-3">DELIVERY ADDRESS</h2>
-
                     <div className="row g-3">
                       <div className="col-md-6">
                         <label htmlFor="firstName" className="form-label">
@@ -243,9 +314,6 @@ const Checkout = () => {
                         id="saveAddress"
                         className="form-check-input"
                         {...register("saveAddress")}
-                        onChange={(e) =>
-                          handleSavedAddressSelect(e.target.value)
-                        }
                       />
                       <label className="form-check-label" htmlFor="saveAddress">
                         Save this address for future use
@@ -258,26 +326,7 @@ const Checkout = () => {
               {/* Delivery Options */}
               <div className="card p-4 mb-5">
                 <h2 className="fw-medium mb-3">DELIVERY OPTIONS</h2>
-                {[
-                  { id: "1", label: "Ikorodu Area", fee: 3000 },
-                  {
-                    id: "9",
-                    label: "Mainland",
-                    fee: 4000,
-                  },
-                  { id: "2", label: "Sango", fee: 8000 },
-                  { id: "4", label: "Lekki axis", fee: 5000 },
-                  {
-                    id: "5",
-                    label: "Ajah",
-                    fee: 12000,
-                  },
-                  {
-                    id: "6",
-                    label: "Sangotedo",
-                    fee: 7000,
-                  },
-                ].map((option) => (
+                {deliveryOptions.map((option) => (
                   <div className="form-check mb-2" key={option.id}>
                     <Controller
                       name="delivery"
@@ -288,6 +337,7 @@ const Checkout = () => {
                           className="form-check-input"
                           type="radio"
                           id={option.id}
+                          checked={field.value === option.id}
                           onChange={() => {
                             field.onChange(option.id);
                             handleDeliveryChange(option.fee);
@@ -298,7 +348,6 @@ const Checkout = () => {
                     <label className="form-check-label" htmlFor={option.id}>
                       {option.label}{" "}
                       <span className="float-end">
-                        {" "}
                         &nbsp;&nbsp;₦{option.fee}
                       </span>
                     </label>
@@ -308,6 +357,7 @@ const Checkout = () => {
               </div>
             </div>
 
+            {/* Order Summary */}
             <div className="col-lg-4">
               <div className="card p-4">
                 <h2 className="fw-medium">Order Summary</h2>
@@ -327,9 +377,17 @@ const Checkout = () => {
                 <button
                   style={{ background: "#cedfc3" }}
                   type="submit"
-                  className="btn w-100 mt-3 fw-bolder"
+                  className="btn w-100 mt-3 fw-bolder d-flex justify-content-center align-items-center"
+                  disabled={loading}
                 >
-                  Proceed to Payment
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    "Proceed to Payment"
+                  )}
                 </button>
               </div>
             </div>

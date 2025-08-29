@@ -1,6 +1,7 @@
 import Cart from "../components/Cart";
 import Checkout from "../components/Checkout";
 import HomePage from "../pages/HomePage";
+import ProfilePage from "../pages/ProfilePage";
 import SingleProduct from "../pages/SingleProduct";
 
 export const routes = [
@@ -20,12 +21,18 @@ export const routes = [
     id: 3,
     path: "/checkout",
     element: <Checkout />,
-    protected: false,
+    protected: true,
   },
   {
-    id: 3,
+    id: 4,
     path: "/product/:productId",
     element: <SingleProduct />,
     protected: false,
+  },
+  {
+    id: 5,
+    path: "/profile",
+    element: <ProfilePage  />,
+    protected: true,
   },
 ];

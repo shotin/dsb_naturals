@@ -91,7 +91,7 @@ const SingleProduct = () => {
           </div>
           <div className="col-md-6">
             <h1>{product.name}</h1>
-            <p>{product.price}</p>
+            <p>₦{product.price}</p>
             <h2 className="mt-4">Product Description</h2>
             <p className="mb-5" style={{ lineHeight: "35px" }}>
               {product?.description}
