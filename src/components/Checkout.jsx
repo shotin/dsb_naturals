@@ -119,13 +119,13 @@ const Checkout = () => {
           Accept: "application/json",
         },
       });
+console.log(res);
 
       if (res.status === 200 || res.status === 201) {
-        toast.success("Checkout info saved, redirecting to payment...");
-
-        // Save address if requested
+        // toast.success("Checkout info saved, redirecting to payment...");
+        const reference = res.data.ref;
         if (data.saveAddress) {
-          const newSavedAddresses = [data]; // Always keep only 1 saved address
+          const newSavedAddresses = [data]; 
           setSavedAddresses(newSavedAddresses);
           localStorage.setItem(
             "savedAddresses",
@@ -133,7 +133,7 @@ const Checkout = () => {
           );
         }
 
-        initiatePayment(data);
+        initiatePayment(data, reference);
       }
     } catch (error) {
       toast.error("Failed to save checkout info. Please try again.");
@@ -141,13 +141,13 @@ const Checkout = () => {
     }
   };
 
-  const initiatePayment = (formData) => {
+  const initiatePayment = (formData, reference) => {
     const handler = window.PaystackPop.setup({
       key: "pk_test_a23030865207814321e6b2e688b325baee8c3c64",
       email: formData.email,
       amount: calculateTotal() * 100,
       currency: "NGN",
-      ref: `${Math.floor(Math.random() * 1000000000 + 1)}`,
+      ref: reference,
       metadata: {
         custom_fields: [
           {
@@ -158,13 +158,14 @@ const Checkout = () => {
         ],
       },
       callback: function (response) {
-        toast.success("Payment successful! Reference: " + response.reference);
+        toast.success("Payment successful! Reference");
         localStorage.removeItem("cart");
         setCartItems({});
         reset();
         setDeliveryFee(0);
         setLoading(false);
-        navigate("/");
+        // navigate("/");
+        navigate(`/?reference=${reference}`);
       },
       onClose: function () {
         toast.success("Payment window closed.");

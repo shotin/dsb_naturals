@@ -194,7 +194,7 @@ const ProfilePage = () => {
           {/* Orders Tab */}
           {activeTab === "orders" && (
             <div>
-              <h4>Order History</h4>
+              <h3 className="fw-bolder">Order History</h3>
               <p>Total Orders: {orders.length}</p>
 
               {orders.map((order) => {
@@ -218,14 +218,14 @@ const ProfilePage = () => {
                     </p>
                     <p>
                       <strong>Delivery Location:</strong>{" "}
-                      {order.delivery_location}
+                      {order.delivery_area}
                     </p>
                     <p>
                       <strong>Total Amount Payable:</strong> ₦
-                      {order.total_amount}
+                      {order.total}
                     </p>
                     <p>
-                      <strong>Status:</strong> {order.status}
+                      <strong>Payment Status:</strong> {order.payment_status}
                     </p>
 
                     <h6 className="mt-3">Cart Items</h6>

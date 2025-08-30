@@ -12,7 +12,6 @@ const Category = () => {
     JSON.parse(localStorage.getItem("cart")) || {}
   );
   const navigate = useNavigate();
-  const IMAGE_BASE_URL = "https://dspnaturals.com/api/public/storage/images/";
 
   // 🔹 Fetch categories
   useEffect(() => {
@@ -67,7 +66,7 @@ const Category = () => {
     } else {
       updatedCart[product.id] = {
         ...product,
-        image: `${IMAGE_BASE_URL}${product.image}`, 
+        image: `${product.image}`, 
         quantity: 1,
       };
     }
@@ -139,7 +138,7 @@ const Category = () => {
                   onClick={() => handleViewProduct(product.id)}
                 >
                   <img
-                    src={`${IMAGE_BASE_URL}${product.image}`}
+                    src={`${product.image}`}
                     alt={product.name}
                     className="product-image img-fluid"
                   />
