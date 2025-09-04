@@ -13,7 +13,6 @@ const Category = () => {
   );
   const navigate = useNavigate();
 
-  // 🔹 Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -56,7 +55,7 @@ const Category = () => {
   const filteredProducts =
     selectedCategory === "all"
       ? products
-      : products.filter((product) => product.category_id === selectedCategory);
+      : products.filter((product) => product.category_id == selectedCategory);
 
   // 🔹 Cart Handlers
   const handleAddToCart = (product) => {

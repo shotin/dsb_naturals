@@ -361,19 +361,28 @@ const Products = () => {
                     }
                   />
                 </div>
+               
                 <div className="mb-3">
-                  <label className="form-label">Category ID:</label>
-                  <input
-                    className="form-control"
-                    value={editProduct.category.name}
+                  <label className="form-label">Category:</label>
+                  <select
+                    className="form-select"
+                    value={editProduct.category_id || ""} // store ID
                     onChange={(e) =>
                       setEditProduct({
                         ...editProduct,
-                        category_id: e.target.value,
+                        category_id: e.target.value, // send ID to backend
                       })
                     }
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name} {/* 👈 user sees category name */}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div className="mb-3">
                   <label className="form-label">Price:</label>
                   <input

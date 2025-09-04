@@ -119,7 +119,6 @@ const Checkout = () => {
           Accept: "application/json",
         },
       });
-console.log(res);
 
       if (res.status === 200 || res.status === 201) {
         // toast.success("Checkout info saved, redirecting to payment...");

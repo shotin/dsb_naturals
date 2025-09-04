@@ -9,6 +9,8 @@ import { toast } from "react-toastify";
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [profileData, setProfileData] = useState({
     first_name: "",
@@ -17,20 +19,36 @@ const ProfilePage = () => {
     phone_number: "",
   });
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    // get user from localStorage
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) setUser(storedUser);
 
-    // fetch orders
+  // Fetch Orders
+  const fetchOrders = (page = 1) => {
     const token = localStorage.getItem("token");
-    if (token) {
-      HTTP.get("/user/checkouts", {
-        headers: { Authorization: `Bearer ${token}` },
+    if (!token) return;
+
+    setOrdersLoading(true);
+    HTTP.get(`/user/checkouts?page=${page}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        const data = res.data.checkouts;
+        setOrders(data.data || []);
+        setPagination({
+          current_page: data.current_page,
+          last_page: data.last_page,
+          per_page: data.per_page,
+          total: data.total,
+        });
       })
-        .then((res) => setOrders(res.data.checkouts || []))
-        .catch((err) => console.error(err));
-    }
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load orders.");
+      })
+      .finally(() => setOrdersLoading(false));
+  };
+
+  useEffect(() => {
+    // Get user from localStorage
+    const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
       setUser(storedUser);
       setProfileData({
@@ -40,9 +58,13 @@ const ProfilePage = () => {
         phone_number: storedUser.phone_number || "",
       });
     }
+
+    // Fetch initial orders
+    fetchOrders(1);
   }, []);
 
   if (!user) return <p>Loading profile...</p>;
+
   return (
     <>
       <Navbar />
@@ -52,7 +74,7 @@ const ProfilePage = () => {
           My Account
         </h2>
 
-        {/* Bootstrap Tabs */}
+        {/* Tabs */}
         <ul
           className="nav nav-tabs border-0"
           style={{ marginTop: "40px", marginBottom: "20px" }}
@@ -87,6 +109,7 @@ const ProfilePage = () => {
 
         {/* Tab Content */}
         <div className="tab-content p-4 border border-top-0 rounded-bottom">
+          {/* Profile Tab */}
           {activeTab === "profile" && (
             <div>
               <h4>Profile Details</h4>
@@ -108,7 +131,7 @@ const ProfilePage = () => {
                     })
                     .catch((err) => {
                       console.error(err);
-                      alert("Failed to update profile");
+                      toast.error("Failed to update profile.");
                     })
                     .finally(() => setLoading(false));
                 }}
@@ -149,8 +172,12 @@ const ProfilePage = () => {
                     type="email"
                     className="form-control"
                     value={profileData.email}
+                    readOnly
                     onChange={(e) =>
-                      setProfileData({ ...profileData, email: e.target.value })
+                      setProfileData({
+                        ...profileData,
+                        email: e.target.value,
+                      })
                     }
                   />
                 </div>
@@ -195,61 +222,101 @@ const ProfilePage = () => {
           {activeTab === "orders" && (
             <div>
               <h3 className="fw-bolder">Order History</h3>
-              <p>Total Orders: {orders.length}</p>
 
-              {orders.map((order) => {
-                // Ensure cart_items is always an array
+              {/* Show spinner while loading */}
+              {ordersLoading ? (
+                <div className="text-center my-4">
+                  <Spinner animation="border" role="status" />
+                  <p className="mt-2">Loading orders...</p>
+                </div>
+              ) : (
+                <>
+                  <p>Total Orders: {pagination?.total || 0}</p>
 
-                const cartItems = order?.cart_items
-                  ? Object.values(order.cart_items)
-                  : [];
+                  {orders.length === 0 ? (
+                    <p>No orders found.</p>
+                  ) : (
+                    orders.map((order) => {
+                      const cartItems = order?.cart_items
+                        ? Object.values(order.cart_items)
+                        : [];
 
-                return (
-                  <div key={order.id} className="mb-4 border p-3 rounded">
-                    <p>
-                      <strong>Order ID:</strong> {order.id}
-                    </p>
-                    <p>
-                      <strong>Order Date:</strong>{" "}
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <strong>Delivery Cost:</strong> ₦{order.delivery_cost}
-                    </p>
-                    <p>
-                      <strong>Delivery Location:</strong>{" "}
-                      {order.delivery_area}
-                    </p>
-                    <p>
-                      <strong>Total Amount Payable:</strong> ₦
-                      {order.total}
-                    </p>
-                    <p>
-                      <strong>Payment Status:</strong> {order.payment_status}
-                    </p>
+                      return (
+                        <div key={order.id} className="mb-4 border p-3 rounded">
+                          <p>
+                            <strong>Order ID:</strong> {order.id}
+                          </p>
+                          <p>
+                            <strong>Order Date:</strong>{" "}
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </p>
+                          <p>
+                            <strong>Delivery Cost:</strong> ₦
+                            {order.delivery_cost}
+                          </p>
+                          <p>
+                            <strong>Delivery Location:</strong>{" "}
+                            {order.delivery_area}
+                          </p>
+                          <p>
+                            <strong>Total Amount Payable:</strong> ₦
+                            {order.total}
+                          </p>
+                          <p>
+                            <strong>Payment Status:</strong>{" "}
+                            {order.payment_status}
+                          </p>
 
-                    <h6 className="mt-3">Cart Items</h6>
-                    <table className="table table-bordered table-sm mt-2">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Item Name</th>
-                          <th>Quantity</th>
-                          <th>Price</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cartItems.map((item, idx) => (
-                          <tr key={idx}>
-                            <td>{item?.name}</td>
-                            <td>{item?.quantity}</td>
-                            <td>₦{item?.price}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
+                          <h6 className="mt-3">Cart Items</h6>
+                          <table className="table table-bordered table-sm mt-2">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {cartItems.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td>{item?.name}</td>
+                                  <td>{item?.quantity}</td>
+                                  <td>₦{item?.price}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {/* Pagination Controls */}
+                  {pagination && (
+                    <div className="d-flex justify-content-between mt-3">
+                      <button
+                        className="btn btn-outline-primary"
+                        disabled={pagination.current_page === 1}
+                        onClick={() => fetchOrders(pagination.current_page - 1)}
+                      >
+                        Previous
+                      </button>
+                      <span className="align-self-center">
+                        Page {pagination.current_page} of {pagination.last_page}
+                      </span>
+                      <button
+                        className="btn btn-outline-primary"
+                        disabled={
+                          pagination.current_page === pagination.last_page
+                        }
+                        onClick={() => fetchOrders(pagination.current_page + 1)}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>

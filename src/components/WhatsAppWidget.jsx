@@ -3,7 +3,7 @@ import "../assets/css/WhatsAppWidget.css";
 
 const WhatsAppWidget = () => {
   const phoneNumber = "2347064548729";
-  const message = "Hi, DSP Natural."; // Message to send
+  const message = "Hi, dsp naturals."; // Message to send
 
   const handleClick = () => {
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
