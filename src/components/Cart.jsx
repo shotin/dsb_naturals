@@ -1,154 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FaTrash } from "react-icons/fa";
+import { toast } from "sonner";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import { FaTrash } from "react-icons/fa";
+import { imageFor, money } from "./StoreProduct";
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState({});
-
-  useEffect(() => {
-    const cartFromStorage = JSON.parse(localStorage.getItem("cart")) || {};
-    setCartItems(cartFromStorage);
-  }, []);
-
-  const handleRemoveFromCart = (productId) => {
-    const updatedCart = { ...cartItems };
-    delete updatedCart[productId];
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
-    setCartItems(updatedCart);
-    toast.success("Item removed from cart!");
-  };
-
-  const handleQuantityChange = (productId, type) => {
-    const updatedCart = { ...cartItems };
-    if (type === "increase") {
-      updatedCart[productId].quantity += 1;
-      toast.success("Item updated successfully");
-    } else if (updatedCart[productId].quantity > 1) {
-      updatedCart[productId].quantity -= 1;
-      toast.success("Item updated successfully");
-    }
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
-    setCartItems(updatedCart);
-  };
-
-  const calculateTotal = () => {
-    const total = Object.values(cartItems).reduce(
-      (acc, item) => acc + Number(item.price) * item.quantity,
-      0
-    );
-    return `₦ ${total.toLocaleString("en-NG", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
+  const [cart, setCart] = useState({});
   const navigate = useNavigate();
-  return (
-    <>
-      <Navbar />
-      <div
-        className="container shadow"
-        style={{ marginTop: "150px", marginBottom: "70px" }}
-      >
-        <div className="bg-white p-4 rounded shadow-sm">
-          <h1 className="h3 mb-4">MY CART ({Object.keys(cartItems).length})</h1>
-
-          <div>
-            {Object.keys(cartItems).length > 0 ? (
-              Object.values(cartItems).map((item) => (
-                <div
-                  key={item.id}
-                  className="d-flex justify-content-between align-items-center border p-3 mb-3 rounded"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="img-fluid rounded"
-                    style={{
-                      width: "100px",
-                      height: "100px",
-                      objectFit: "cover",
-                    }}
-                  />
-                  <div className="flex-fill ms-3">
-                    <h5>{item.name}</h5>
-                    <p>₦ {item.price}</p>
-
-                    <div className="d-flex align-items-center">
-                      <button
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={() =>
-                          handleQuantityChange(item.id, "decrease")
-                        }
-                      >
-                        -
-                      </button>
-                      <span className="mx-3">{item.quantity}</span>
-                      <button
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={() =>
-                          handleQuantityChange(item.id, "increase")
-                        }
-                      >
-                        +
-                      </button>
-                      <FaTrash
-                        className=" ms-auto text-danger"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => handleRemoveFromCart(item.id)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="fw-bolder text-uppercase text-center mb-5">
-                <p>Your cart is empty.</p>
-                <button
-                  className="btn  fw-bolder"
-                  style={{ background: "#cedfc3" }}
-                  onClick={() => navigate("/")}
-                >
-                  Shop
-                </button>
-              </div>
-            )}
-          </div>
-          {Object.keys(cartItems).length > 0 ? (
-            <>
-              <div className="border-top pt-3 fw-bolder ">
-                <div className="d-flex justify-content-between font-weight-bold">
-                  <p>Total</p>
-                  <p>{calculateTotal()}</p>
-                </div>
-              </div>
-
-              <button
-                className="btn fw-bolder w-100 mt-4"
-                style={{ background: "#cedfc3" }}
-                onClick={() => {
-                  const user = JSON.parse(localStorage.getItem("user"));
-                  if (!user) {
-                    toast.error("Please login before proceeding to checkout.");
-                  } else {
-                    navigate("/checkout");
-                  }
-                }}
-              >
-                PROCEED TO CHECKOUT
-              </button>
-            </>
-          ) : (
-            ""
-          )}
-        </div>
+  useEffect(() => { try { setCart(JSON.parse(localStorage.getItem("cart") || "{}")); } catch { setCart({}); } }, []);
+  const items = useMemo(() => Object.values(cart), [cart]);
+  const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  const updateCart = (next) => { setCart(next); localStorage.setItem("cart", JSON.stringify(next)); window.dispatchEvent(new Event("storefront:updated")); };
+  const change = (id, delta) => { const next = { ...cart }; if (!next[id]) return; next[id] = { ...next[id], quantity: Number(next[id].quantity) + delta }; if (next[id].quantity <= 0) delete next[id]; updateCart(next); };
+  const remove = (id) => {
+    const item = cart[id];
+    if (!item) return;
+    toast.custom((toastId) => <div className="dsp-toast-confirm">
+      <p>Remove {item.name} from your bag?</p>
+      <div className="dsp-toast-confirm-actions">
+        <button type="button" className="dsp-toast-confirm-delete" onClick={() => { const next = { ...cart }; delete next[id]; updateCart(next); toast.dismiss(toastId); toast.success("Item removed from your bag"); }}>Remove item</button>
+        <button type="button" className="dsp-toast-confirm-cancel" onClick={() => toast.dismiss(toastId)}>Keep item</button>
       </div>
-      <Footer />
-    </>
-  );
+    </div>, { duration: Infinity });
+  };
+  return <div className="storefront"><Navbar/><main className="cart-page"><div className="cart-heading"><span className="eyebrow">A good choice</span><h1>Your <em>bag.</em></h1><p>{items.length ? `${items.length} lovely ${items.length === 1 ? "find" : "finds"} for your routine.` : "Your next favourite is waiting to be found."}</p></div>
+    {items.length ? <div className="cart-layout"><section className="cart-items">{items.map((item) => <article className="cart-item" key={item.id}><img src={imageFor(item)} alt={item.name}/><div className="cart-item-info"><Link to={`/product/${item.id}`}>{item.name}</Link><span>{money(item.price)}</span><div className="quantity-stepper"><button onClick={() => change(item.id, -1)} aria-label="Decrease quantity">−</button><span>{item.quantity}</span><button onClick={() => change(item.id, 1)} aria-label="Increase quantity">+</button></div></div><div className="cart-item-total"><b>{money(Number(item.price) * item.quantity)}</b><button onClick={() => remove(item.id)} aria-label="Remove item"><FaTrash/></button></div></article>)}</section><aside className="cart-summary"><h2>Order summary</h2><div className="summary-line"><span>Subtotal</span><b>{money(total)}</b></div><div className="summary-line"><span>Delivery</span><span>Calculated at checkout</span></div><div className="summary-line total"><span>Total</span><b>{money(total)}</b></div><button className="button button-dark" onClick={() => navigate("/checkout")}>Continue to checkout ↗</button><p>Secure payment with Paystack</p><Link to="/shop">Continue shopping</Link></aside></div> : <div className="empty-products"><span>♡</span><h3>Your bag is taking a quiet moment</h3><p>Explore the collection and find something lovely.</p><Link className="button button-dark" to="/shop">Explore the collection ↗</Link></div>}
+  </main><Footer/></div>;
 };
-
 export default Cart;

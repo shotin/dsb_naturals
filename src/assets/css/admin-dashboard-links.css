@@ -1,0 +1,5 @@
+.admin-metric-link{display:block;color:inherit;text-decoration:none}
+.admin-metric-link:hover{color:inherit;text-decoration:none;transform:translateY(-2px);border-color:#c8d2c9}
+.admin-metric-link:focus-visible,.admin-dashboard-order-link:focus-visible{outline:3px solid #719181;outline-offset:3px}
+.admin-dashboard-order-link{color:var(--admin-forest);font-weight:700;text-decoration:none}
+.admin-dashboard-order-link:hover{text-decoration:underline}

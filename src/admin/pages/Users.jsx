@@ -47,7 +47,8 @@ const Users = () => {
 
   return (
     <div>
-      <h2>Users</h2>
+      <div className="admin-page-heading"><div><h2>Customers</h2><p>Customer accounts registered with DSP Naturals.</p></div><span className="admin-order-total">{users.length} customers</span></div>
+      <div className="card"><div className="table-responsive">
       <table className="table table-striped mt-3">
         <thead>
           <tr>
@@ -74,7 +75,7 @@ const Users = () => {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div></div>
     </div>
   );
 };

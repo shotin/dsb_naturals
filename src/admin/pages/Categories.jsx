@@ -1,7 +1,7 @@
 // src/admin/pages/Categories.jsx
 import { useEffect, useState } from "react";
 import { HTTP } from "../../utils";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -11,6 +11,7 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [saving, setSaving] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryImage, setCategoryImage] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -38,6 +39,7 @@ const Categories = () => {
   const openAddModal = () => {
     setEditingCategory(null);
     setNewCategoryName("");
+    setCategoryImage("");
     setShowModal(true);
   };
 
@@ -49,6 +51,7 @@ const Categories = () => {
       });
       setEditingCategory(response.data);
       setNewCategoryName(response.data.name);
+      setCategoryImage(response.data.image || "");
       setShowModal(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to fetch category");
@@ -64,7 +67,7 @@ const Categories = () => {
         // Update
         const response = await HTTP.patch(
           `/admin/categories/${editingCategory.id}/update`,
-          { name: newCategoryName },
+          { name: newCategoryName, image: categoryImage || null },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setCategories((prev) =>
@@ -75,10 +78,10 @@ const Categories = () => {
         // Add
         const response = await HTTP.post(
           "/admin/categories/add",
-          { name: newCategoryName },
+          { name: newCategoryName, image: categoryImage || null },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setCategories((prev) => [response.data.category, ...prev]);
+        setCategories((prev) => [response.data, ...prev]);
         toast.success("Category added successfully!");
       }
       setShowModal(false);
@@ -92,40 +95,25 @@ const Categories = () => {
 
   // Delete category
   const deleteCategory = (categoryId) => {
-    const ToastContent = ({ closeToast }) => (
-      <div>
+    toast.custom((toastId) => (
+      <div className="dsp-toast-confirm">
         <p>Are you sure you want to delete this category?</p>
-        <div className="mt-2">
-          <button
-            className="btn btn-sm btn-danger me-2"
-            onClick={async () => {
-              try {
-                await HTTP.delete(`/admin/categories/${categoryId}/delete`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                });
-                setCategories((prev) =>
-                  prev.filter((c) => c.id !== categoryId)
-                );
-                toast.success("Category deleted successfully!");
-              } catch (err) {
-                toast.error(
-                  err.response?.data?.message || "Failed to delete category"
-                );
-              } finally {
-                closeToast();
-              }
-            }}
-          >
-            Yes
-          </button>
-          <button className="btn btn-sm btn-secondary" onClick={closeToast}>
-            No
-          </button>
+        <div className="dsp-toast-confirm-actions">
+          <button type="button" className="dsp-toast-confirm-delete" onClick={async () => {
+            try {
+              await HTTP.delete(`/admin/categories/${categoryId}/delete`, { headers: { Authorization: `Bearer ${token}` } });
+              await fetchCategories();
+              toast.success("Category deleted successfully!");
+            } catch (err) {
+              toast.error(err.response?.data?.message || "Failed to delete category");
+            } finally {
+              toast.dismiss(toastId);
+            }
+          }}>Delete</button>
+          <button type="button" className="dsp-toast-confirm-cancel" onClick={() => toast.dismiss(toastId)}>Cancel</button>
         </div>
       </div>
-    );
-
-    toast.info(<ToastContent />, { autoClose: false });
+    ), { duration: Infinity });
   };
 
  
@@ -142,16 +130,18 @@ const Categories = () => {
 
   return (
     <div>
-      <h2>Categories</h2>
+      <div className="admin-page-heading"><div><h2>Categories</h2><p>Organize products into the collections customers browse.</p></div>
       <button className="btn btn-primary mb-3" onClick={openAddModal}>
         Add New Category
       </button>
+      </div>
 
       <table className="table table-striped">
         <thead>
           <tr>
             <th>#</th>
             <th>Name</th>
+            <th>Image</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -160,6 +150,7 @@ const Categories = () => {
             <tr key={c.id}>
               <td>{idx + 1}</td>
               <td>{c.name}</td>
+              <td>{c.image ? <img src={c.image} alt="" style={{ width: 58, height: 58, objectFit: "cover" }} /> : "—"}</td>
               <td>
                 <button
                   className="btn btn-sm btn-warning me-2"
@@ -207,6 +198,17 @@ const Categories = () => {
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                   />
+                </div>
+                <div className="mb-3">
+                  <label>Image URL:</label>
+                  <input
+                    type="url"
+                    className="form-control"
+                    placeholder="https://..."
+                    value={categoryImage}
+                    onChange={(e) => setCategoryImage(e.target.value)}
+                  />
+                  {categoryImage && <img src={categoryImage} alt="Category preview" className="mt-2" style={{ maxWidth: "100%", maxHeight: 150, objectFit: "cover" }} />}
                 </div>
               </div>
               <div className="modal-footer">

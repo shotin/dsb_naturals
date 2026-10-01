@@ -7,7 +7,7 @@ const Product = ({ title, sale, buttonText, imageUrl }) => {
         <p className="h3 font-weight-bold text-dark mb-4">{sale}</p>
         <a
           href="#products"
-          style={{ background: "#cedfc3" }}
+          style={{ background: "#111", color: "#fff" }}
           className="btn text-dark fw-bolder py-2 px-4 rounded"
         >
           {buttonText}

@@ -1,104 +1,26 @@
-// src/admin/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HTTP } from "../../utils";
+import images from "../../constants/images";
+import "../../assets/css/admin.css";
 
-const Login = () => {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true); // show spinner
-
+  const handleSubmit = async (event) => {
+    event.preventDefault(); setError(""); setLoading(true);
     try {
-      const response = await HTTP.post("/login", { email, password });
-      const data = response.data;
-
-      if (data.message === "Login successful") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/admin-naturals-dsp");
-      } else {
-        setError(data.message || "Invalid credentials");
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Try again.");
-    } finally {
-      setLoading(false); // hide spinner
-    }
+      const { data } = await HTTP.post("/login", { email, password });
+      if (data.message !== "Login successful") throw new Error(data.message || "Invalid credentials");
+      localStorage.setItem("token", data.token); localStorage.setItem("user", JSON.stringify(data.user)); navigate("/admin-naturals-dsp");
+    } catch (err) { setError(err.response?.data?.message || err.message || "Unable to sign in. Please try again."); }
+    finally { setLoading(false); }
   };
-
-  return (
-    <div className="container vh-100 d-flex justify-content-center align-items-center bg-light">
-      <div className="card shadow-sm p-4" style={{ maxWidth: "400px", width: "100%" }}>
-        <div className="text-center mb-4">
-          <h2 className="card-title">Admin Login</h2>
-        </div>
-
-        {error && <div className="alert alert-danger text-center">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="email" className="form-label fw-bolder">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="form-control"
-              placeholder="Enter your email address"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label fw-bolder">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-control"
-              placeholder="Enter your password"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-            {loading ? (
-              <>
-                <span
-                  className="spinner-border spinner-border-sm me-2"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
-          </button>
-        </form>
-
-        <div className="mt-3 text-center">
-          <a href="#" className="small text-decoration-none">
-            Forgot Password?
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Login;
+  return <main className="admin-login-page">
+    <section className="admin-login-aside"><img src={images.dspLogo} alt="DSP Naturals" /><div><span className="admin-top-kicker">YOUR STORE, IN GOOD HANDS</span><h1>Thoughtful care.<br/>Thoughtful business.</h1><p>Manage your catalogue, orders and customer experience from one calm workspace.</p></div><span className="admin-top-kicker">DSP NATURALS · STORE ADMINISTRATION</span></section>
+    <section className="admin-login-form-wrap"><form className="admin-login-card" onSubmit={handleSubmit}><span className="eyebrow">WELCOME BACK</span><h2>Admin sign in</h2><p>Sign in to continue to your store dashboard.</p>{error && <div className="alert alert-danger" role="alert">{error}</div>}<div className="mb-3"><label htmlFor="admin-email" className="form-label">Email address</label><input id="admin-email" type="email" className="form-control" autoComplete="username" placeholder="admin@example.com" value={email} onChange={e=>setEmail(e.target.value)} required disabled={loading}/></div><div className="mb-4"><label htmlFor="admin-password" className="form-label">Password</label><input id="admin-password" type="password" className="form-control" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e=>setPassword(e.target.value)} required disabled={loading}/></div><button className="btn btn-primary w-100" type="submit" disabled={loading}>{loading ? "Signing in…" : "Sign in to dashboard"}</button><div className="admin-login-note">Access is limited to authorized store administrators.</div></form></section>
+  </main>;
+}

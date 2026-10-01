@@ -1,0 +1,11 @@
+.admin-delivery-add,.admin-delivery-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(160px,.7fr) auto auto;gap:14px;align-items:end;padding:18px;background:#fff;border:1px solid var(--admin-line);border-radius:12px}
+.admin-delivery-add{margin-bottom:16px;background:#f8faf7}
+.admin-delivery-add label,.admin-delivery-row>label{display:grid;gap:6px;color:#56635a;font-size:10px;font-weight:700}
+.admin-delivery-add input,.admin-delivery-row input:not([type=checkbox]){height:40px;min-width:0;padding:0 11px;border:1px solid #dfe3dc;border-radius:7px;background:white;font-size:12px}
+.admin-delivery-add button,.admin-delivery-actions button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:40px}
+.admin-delivery-list{display:grid;gap:10px}
+.admin-delivery-active{display:flex!important;align-items:center;gap:8px;min-height:40px;white-space:nowrap}
+.admin-delivery-active input{accent-color:var(--admin-forest)}
+.admin-delivery-actions{display:flex;gap:7px}
+@media(max-width:760px){.admin-delivery-add,.admin-delivery-row{grid-template-columns:1fr 1fr}.admin-delivery-active,.admin-delivery-actions{grid-column:1/-1}.admin-delivery-actions{justify-content:flex-start}}
+@media(max-width:480px){.admin-delivery-add,.admin-delivery-row{grid-template-columns:1fr;padding:14px}.admin-delivery-active,.admin-delivery-actions{grid-column:auto}}

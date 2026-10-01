@@ -1,132 +1,30 @@
 import { useState } from "react";
-import {
-  FaFacebookF,
-  FaTwitter,
-  FaInstagram,
-  FaTiktok,
-  FaPhoneAlt,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
-import "../assets/css/footer.css";
+import { Link } from "react-router-dom";
+import { FaInstagram, FaTiktok, FaWhatsapp } from "react-icons/fa";
+import { images } from "../constants";
+import { HTTP } from "../utils";
+import { toast } from "sonner";
 
 const Footer = () => {
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const currentYear = new Date().getFullYear();
-
-  const handleSubscription = (e) => {
-    e.preventDefault();
-    if (email) {
-      setMessage("Thank you for subscribing!");
-      setEmail("");
-      setTimeout(() => setMessage(""), 5000);
-    } else {
-      setMessage("Please enter a valid email address.");
-    }
+  const [subscribed, setSubscribed] = useState(false);
+  const [newsletterMode, setNewsletterMode] = useState("subscribe");
+  const [newsletterBusy, setNewsletterBusy] = useState(false);
+  const subscribe = async (e) => {
+    e.preventDefault(); setNewsletterBusy(true);
+    try {
+      const { data } = await HTTP.post(newsletterMode === "unsubscribe" ? "/newsletter/unsubscribe" : "/newsletter/subscribe", { email });
+      toast.success(data.message);
+      if (newsletterMode === "subscribe") setEmail("");
+      setSubscribed(newsletterMode === "subscribe");
+    } catch (error) { toast.error(error.response?.data?.message || "We could not update your newsletter preference."); }
+    finally { setNewsletterBusy(false); }
   };
-
-  const phoneNumber = "2347064548729";
-  const address =
-    "NO 1, REMILEKUN STREET, FIRST GATE, IKORODU, LAGOS STATE, NIGERIA";
-
-  return (
-    <footer className="footer">
-      <div className="container text-center">
-        <div className="footer-content">
-          {/* Social Media Links */}
-          <div className="social-icons mb-4">
-            <a
-              href="https://www.facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="social-icon"
-            >
-              <FaFacebookF />
-            </a>
-            <a
-              href="https://www.twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="social-icon"
-            >
-              <FaTwitter />
-            </a>
-            <a
-              href="https://www.instagram.com/dsp_naturals"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="social-icon"
-            >
-              <FaInstagram />
-            </a>
-
-            <a
-              href="https://www.tiktok.com/dsp_naturals"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="social-icon"
-            >
-              <FaTiktok />
-            </a>
-          </div>
-
-          {/* Contact Us Section */}
-          <div className="contact-us mb-4 fw-bolder">
-            <h5 className="fw-bolder">CONTACT US</h5>
-            <p>
-              <a
-                className="text-white"
-                href={`tel:${phoneNumber}`}
-                style={{ textDecoration: "none" }}
-              >
-                <FaPhoneAlt /> 07064548729
-              </a>
-            </p>
-            <p>
-              <a
-                className="text-white"
-                href={`https://www.google.com/maps?q=${encodeURIComponent(
-                  address
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: "none" }}
-              >
-                <FaMapMarkerAlt /> {address}
-              </a>
-            </p>
-          </div>
-
-          {/* Newsletter Subscription */}
-          <div className="newsletter fw-bolder">
-            <h5>Subscribe to our Newsletter</h5>
-            <form onSubmit={handleSubscription} className="newsletter-form">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="newsletter-input"
-                required
-              />
-              <button
-                type="submit"
-                className="newsletter-button text-dark fw-bolder"
-              >
-                Subscribe
-              </button>
-            </form>
-            {message && <p className="message">{message}</p>}
-          </div>
-
-          {/* Copyright */}
-          <p className="footer-text fw-bolder">
-            &copy; {currentYear} DSP NATURAL. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
+  return <footer className="site-footer">
+    <section className="newsletter-band"><div><span className="eyebrow">DSP NATURALS NOTES</span><h2>A little glow in<br/><em>your inbox.</em></h2><p>New arrivals, skincare favourites, and small reminders to care for you.</p></div><div className="newsletter-signup"><form onSubmit={subscribe}><label className="sr-only" htmlFor="newsletter-email">Your email address</label><input id="newsletter-email" type="email" required placeholder="Your email address" value={email} onChange={(e) => setEmail(e.target.value)}/><button type="submit" disabled={newsletterBusy}>{newsletterBusy ? "Please wait…" : newsletterMode === "unsubscribe" ? "Unsubscribe" : subscribed ? "You’re subscribed" : "Join the list ↗"}</button></form><button type="button" className="newsletter-mode-toggle" onClick={() => setNewsletterMode((mode) => mode === "subscribe" ? "unsubscribe" : "subscribe")}>{newsletterMode === "subscribe" ? "Already subscribed? Unsubscribe" : "Back to newsletter signup"}</button></div></section>
+    <div className="footer-main"><div className="footer-brand"><Link to="/" className="footer-logo"><img src={images.dspLogo} alt="DSP Naturals" /></Link><p>Thoughtfully selected skincare and beauty essentials for your everyday ritual.</p><div className="footer-social"><a href="https://www.instagram.com/dsp_naturals" aria-label="Instagram"><FaInstagram/></a><a href="https://www.tiktok.com/@dsp_naturals" aria-label="TikTok"><FaTiktok/></a><a href="https://wa.me/2347064548729" aria-label="WhatsApp"><FaWhatsapp/></a></div></div>
+      <div><h3>Explore</h3><Link to="/shop">Shop all</Link><Link to="/wishlist">Your wishlist</Link><Link to="/about">Our story</Link></div><div><h3>Customer care</h3><Link to="/contact">Contact us</Link><Link to="/contact">Delivery information</Link><Link to="/contact">Returns & support</Link></div><div><h3>Information</h3><Link to="/terms">Terms &amp; conditions</Link><Link to="/privacy">Privacy policy</Link><a href="tel:+2347064548729">0706 454 8729</a></div>
+    </div><div className="footer-bottom"><span>© {new Date().getFullYear()} DSP Naturals. All rights reserved.</span><span>Your skin. Your ritual.</span></div>
+  </footer>;
 };
-
 export default Footer;

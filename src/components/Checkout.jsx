@@ -1,401 +1,238 @@
-import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import Footer from "./Footer";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "./Navbar";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import Footer from "./Footer";
 import { HTTP } from "../utils";
+import { imageFor, money } from "./StoreProduct";
+import { getGuestSessionId } from "../utils/guestSession";
+
+const emptyForm = {
+  email: "",
+  phone_number: "",
+  first_name: "",
+  last_name: "",
+  address: "",
+};
 
 const Checkout = () => {
-  const [cartItems, setCartItems] = useState({});
-  const [deliveryFee, setDeliveryFee] = useState(0);
-  const [savedAddresses, setSavedAddresses] = useState([]);
-  const [useSavedAddress, setUseSavedAddress] = useState(false);
+  const [cart, setCart] = useState({});
+  const [deliveryAreas, setDeliveryAreas] = useState([]);
+  const [delivery, setDelivery] = useState("");
   const [user, setUser] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [editingDetails, setEditingDetails] = useState(true);
+  const [saveAddress, setSaveAddress] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const schema = yup.object().shape({
-    email: yup.string().email("Invalid email").required("Email is required"),
-    phone: yup
-      .string()
-      .matches(
-        /^(070|080|081|090)\d{8}$/,
-        "Phone number must start with 070, 080, 081, or 090 and be exactly 11 digits"
-      )
-      .required("Phone number is required"),
-    firstName: yup.string().required("First name is required"),
-    lastName: yup.string().required("Last name is required"),
-    address: yup.string().required("Address is required"),
-    delivery: yup.string().required("Please select a delivery option"),
-  });
-
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
+  const [loadingDetails, setLoadingDetails] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const cartFromStorage = JSON.parse(localStorage.getItem("cart")) || {};
-    setCartItems(cartFromStorage);
-
-    const addresses = JSON.parse(localStorage.getItem("savedAddresses")) || [];
-    setSavedAddresses(addresses);
-
-    // Autofill first saved address if available
-    if (addresses.length > 0) {
-      const addr = addresses[0];
-      setUseSavedAddress(true);
-      setValue("firstName", addr.firstName);
-      setValue("lastName", addr.lastName);
-      setValue("address", addr.address);
-      setValue("email", addr.email);
-      setValue("phone", addr.phone);
-    }
-  }, [setValue]);
-
-  const calculateSubtotal = () => {
-    return Object.values(cartItems).reduce(
-      (acc, item) => acc + Number(item.price) * item.quantity,
-      0
-    );
-  };
-
-  const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    return subtotal + deliveryFee;
-  };
-
-  const deliveryOptions = [
-    { id: "1", label: "Ikorodu Area", fee: 3000 },
-    { id: "9", label: "Mainland", fee: 4000 },
-    { id: "2", label: "Sango", fee: 8000 },
-    { id: "4", label: "Lekki axis", fee: 5000 },
-    { id: "5", label: "Ajah", fee: 12000 },
-    { id: "6", label: "Sangotedo", fee: 7000 },
-  ];
-
-  const onSubmit = async (data) => {
-    const selectedDelivery = deliveryOptions.find(
-      (opt) => opt.id === data.delivery
-    );
-    setLoading(true);
     try {
-      const payload = {
-        email: data.email,
-        phone_number: data.phone,
-        first_name: data.firstName,
-        last_name: data.lastName,
-        address: data.address,
-        delivery_area: selectedDelivery ? selectedDelivery.label : null,
-        delivery_cost: deliveryFee,
-        subtotal: calculateSubtotal(),
-        total: calculateTotal(),
-        cart_items: Object.values(cartItems).map((item) => ({
-          id: item.id,
-          category_id: item.category_id,
-          description: item.description,
-          name: item.name,
-          price: Number(item.price),
-          quantity: item.quantity,
-          image: item.image,
-          category: item.category,
-        })),
-      };
+      setCart(JSON.parse(localStorage.getItem("cart") || "{}"));
+    } catch {
+      setCart({});
+    }
 
-      const token = localStorage.getItem("token"); // or however you store it
+    let storedUser = null;
+    try {
+      storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      storedUser = null;
+    }
 
-      const res = await HTTP.post("/user/checkouts", payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
+    if (storedUser) {
+      setUser(storedUser);
+      setForm({
+        ...emptyForm,
+        ...storedUser,
+        address: storedUser.primary_address || storedUser.address || "",
       });
+      setDelivery(storedUser.primary_delivery_area || "");
+      setSaveAddress(Boolean(storedUser.primary_address));
+      setEditingDetails(!storedUser.primary_address);
+    }
 
-      if (res.status === 200 || res.status === 201) {
-        // toast.success("Checkout info saved, redirecting to payment...");
-        const reference = res.data.ref;
-        if (data.saveAddress) {
-          const newSavedAddresses = [data]; 
-          setSavedAddresses(newSavedAddresses);
-          localStorage.setItem(
-            "savedAddresses",
-            JSON.stringify(newSavedAddresses)
-          );
-        }
+    const token = localStorage.getItem("token");
+    const requests = [
+      HTTP.get("/delivery-areas")
+        .then(({ data }) => {
+          const areas = data?.delivery_areas || [];
+          setDeliveryAreas(areas);
+          setDelivery((current) => current || areas[0]?.name || "");
+        })
+        .catch(() => setError("Delivery options could not be loaded. Please refresh and try again.")),
+    ];
 
-        initiatePayment(data, reference);
+    if (token) {
+      requests.push(
+        HTTP.get("/user/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(({ data }) => {
+            const profile = data?.user;
+            if (!profile) return;
+            const currentUser = { ...(storedUser || {}), ...profile };
+            setUser(currentUser);
+            localStorage.setItem("user", JSON.stringify(currentUser));
+            setForm({
+              ...emptyForm,
+              ...currentUser,
+              address: currentUser.primary_address || "",
+            });
+            setDelivery((current) => currentUser.primary_delivery_area || current);
+            setSaveAddress(Boolean(currentUser.primary_address));
+            setEditingDetails(!currentUser.primary_address);
+          })
+          .catch(() => {}),
+      );
+    }
+
+    Promise.all(requests).finally(() => setLoadingDetails(false));
+  }, []);
+
+  useEffect(() => {
+    if (deliveryAreas.length && !deliveryAreas.some((area) => area.name === delivery)) {
+      setDelivery(deliveryAreas[0].name);
+    }
+  }, [deliveryAreas, delivery]);
+
+  const items = useMemo(() => Object.values(cart), [cart]);
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0),
+    [items],
+  );
+  const deliveryFee = deliveryAreas.find((area) => area.name === delivery)?.fee || 0;
+  const fee = subtotal >= 200000 ? 0 : Number(deliveryFee);
+  const hasPrimaryAddress = Boolean(user?.primary_address);
+  const update = (event) =>
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await HTTP.post(
+        "/checkouts",
+        {
+          ...form,
+          delivery_area: delivery,
+          save_address: Boolean(token && saveAddress),
+          guest_session_id: getGuestSessionId(),
+          cart_items: items.map((item) => ({
+            id: item.id,
+            quantity: Number(item.quantity),
+          })),
+        },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+      );
+      if (!data?.authorization_url) {
+        throw new Error("Payment could not be started. Please try again.");
       }
-    } catch (error) {
-      toast.error("Failed to save checkout info. Please try again.");
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+      window.location.assign(data.authorization_url);
+    } catch (exception) {
+      setError(
+        exception.response?.data?.message ||
+          exception.message ||
+          "We could not start your payment. Please try again.",
+      );
       setLoading(false);
     }
   };
 
-  const initiatePayment = (formData, reference) => {
-    const handler = window.PaystackPop.setup({
-      key: "pk_test_a23030865207814321e6b2e688b325baee8c3c64",
-      email: formData.email,
-      amount: calculateTotal() * 100,
-      currency: "NGN",
-      ref: reference,
-      metadata: {
-        custom_fields: [
-          {
-            display_name: "Phone Number",
-            variable_name: "phone",
-            value: formData.phone,
-          },
-        ],
-      },
-      callback: function (response) {
-        toast.success("Payment successful! Reference");
-        localStorage.removeItem("cart");
-        setCartItems({});
-        reset();
-        setDeliveryFee(0);
-        setLoading(false);
-        // navigate("/");
-        navigate(`/?reference=${reference}`);
-      },
-      onClose: function () {
-        toast.success("Payment window closed.");
-        setLoading(false);
-      },
-    });
-
-    handler.openIframe();
-  };
-
-  const handleDeliveryChange = (fee) => {
-    setDeliveryFee(fee);
-  };
-
-  useEffect(() => {
-    // Fetch user from localStorage if logged in
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-
-      // Prefill values into the form
-      setValue("email", parsedUser.email);
-      setValue("phone", parsedUser.phone_number);
-    }
-  }, [setValue]);
+  const contactSummary = user && (
+    <div className="saved-checkout-details">
+      <div>
+        <span className="eyebrow">Contact details</span>
+        <strong>{form.first_name} {form.last_name}</strong>
+        <small>{form.email} · {form.phone_number}</small>
+      </div>
+      <div>
+        <span className="eyebrow">Delivery address</span>
+        <strong>{form.address}</strong>
+        <small>{delivery}</small>
+      </div>
+      <button type="button" className="checkout-edit-button" onClick={() => setEditingDetails(true)}>
+        Edit details
+      </button>
+    </div>
+  );
 
   return (
-    <>
+    <div className="storefront">
       <Navbar />
-      <div
-        className="container py-4 fw-bolder"
-        style={{ marginTop: "150px", marginBottom: "70px" }}
-      >
-        <h1 className="fw-bolder fs-4">
-          CHECKOUT ({Object.keys(cartItems).length})
-        </h1>
-        <p className="text-secondary">Checkout your order seamlessly.</p>
-
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="row mt-4">
-            <div className="col-lg-8">
-              {/* Contact */}
-              <div className="card p-4 mb-4">
-                <h2 className="fw-medium mb-3">CONTACT</h2>
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label htmlFor="email" className="form-label">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      className="form-control"
-                      {...register("email")}
-                      readOnly={!!user} // make read-only if user exists
-                    />
-                    <p className="text-danger">{errors.email?.message}</p>
+      <main className="checkout-page">
+        <div className="checkout-heading">
+          <span className="eyebrow">Almost yours</span>
+          <h1>Secure <em>checkout.</em></h1>
+          <p>Guest checkout is ready. Your payment is processed securely by Paystack.</p>
+        </div>
+        {items.length ? (
+          <form className="checkout-layout" onSubmit={submit}>
+            <section className="checkout-form">
+              {loadingDetails && <p className="checkout-loading">Loading your saved details…</p>}
+              {user && hasPrimaryAddress && !editingDetails ? contactSummary : (
+                <>
+                  <h2>Contact details</h2>
+                  <div className="checkout-fields">
+                    <label>Email address<input type="email" name="email" value={form.email} onChange={update} required autoComplete="email" /></label>
+                    <label>Phone number<input type="tel" name="phone_number" value={form.phone_number} onChange={update} required autoComplete="tel" /></label>
                   </div>
-
-                  <div className="col-md-6">
-                    <label htmlFor="phone" className="form-label">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      maxLength="11"
-                      className="form-control"
-                      {...register("phone")}
-                      readOnly={!!user} // make read-only if user exists
-                    />
-                    <p className="text-danger">{errors.phone?.message}</p>
+                  <h2>Delivery address</h2>
+                  <div className="checkout-fields">
+                    <label>First name<input name="first_name" value={form.first_name} onChange={update} required autoComplete="given-name" /></label>
+                    <label>Last name<input name="last_name" value={form.last_name} onChange={update} required autoComplete="family-name" /></label>
+                    <label className="field-full">Street address<input name="address" value={form.address} onChange={update} required autoComplete="street-address" /></label>
+                    {user && <label className="primary-address-toggle"><input type="checkbox" checked={saveAddress} onChange={(event) => setSaveAddress(event.target.checked)} /><span>Save as my primary address for next time</span></label>}
                   </div>
-                </div>
+                  {user && hasPrimaryAddress && <button type="button" className="checkout-edit-button checkout-use-saved" onClick={() => { setForm((current) => ({ ...current, ...user, address: user.primary_address })); setDelivery(user.primary_delivery_area || delivery); setSaveAddress(true); setEditingDetails(false); }}>Use saved details</button>}
+                </>
+              )}
+
+              <h2>Delivery area</h2>
+              {subtotal >= 200000 && <p className="free-delivery-note">Your order qualifies for complimentary delivery.</p>}
+              <div className="delivery-options">
+                {deliveryAreas.map((area) => (
+                  <label key={area.id} className={delivery === area.name ? "delivery-option selected" : "delivery-option"}>
+                    <input type="radio" name="delivery" value={area.name} checked={delivery === area.name} onChange={() => setDelivery(area.name)} />
+                    <span>{area.name}</span>
+                    <b>{subtotal >= 200000 ? "FREE" : money(area.fee)}</b>
+                  </label>
+                ))}
+                {!loadingDetails && !deliveryAreas.length && <p className="checkout-error">No delivery areas are available right now.</p>}
               </div>
-
-              {/* Delivery Address */}
-              <div className="card p-4 mb-4">
-                <h2 className="fw-medium mb-3">DELIVERY ADDRESS</h2>
-
-                {useSavedAddress && savedAddresses.length > 0 ? (
-                  <div className="card p-4 mb-4">
-                    <h2 className="fw-medium mb-3">SAVED DELIVERY ADDRESS</h2>
-                    <p>
-                      <strong>
-                        {savedAddresses[0].firstName}{" "}
-                        {savedAddresses[0].lastName}
-                      </strong>
-                    </p>
-                    <p>{savedAddresses[0].address}</p>
-                    <button
-                      type="button"
-                      className="btn fw-bolder text-primary p-0"
-                      onClick={() => setUseSavedAddress(false)}
-                    >
-                      Use a different address
-                    </button>
-                  </div>
-                ) : (
-                  <div className="card p-4 mb-4">
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <label htmlFor="firstName" className="form-label">
-                          First Name
-                        </label>
-                        <input
-                          type="text"
-                          id="firstName"
-                          className="form-control"
-                          {...register("firstName")}
-                        />
-                        <p className="text-danger">
-                          {errors.firstName?.message}
-                        </p>
-                      </div>
-                      <div className="col-md-6">
-                        <label htmlFor="lastName" className="form-label">
-                          Last Name
-                        </label>
-                        <input
-                          type="text"
-                          id="lastName"
-                          className="form-control"
-                          {...register("lastName")}
-                        />
-                        <p className="text-danger">
-                          {errors.lastName?.message}
-                        </p>
-                      </div>
-                    </div>
-
-                    <label htmlFor="address" className="form-label mt-3">
-                      Address
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      className="form-control"
-                      {...register("address")}
-                    />
-                    <p className="text-danger">{errors.address?.message}</p>
-
-                    <div className="form-check mt-3">
-                      <input
-                        type="checkbox"
-                        id="saveAddress"
-                        className="form-check-input"
-                        {...register("saveAddress")}
-                      />
-                      <label className="form-check-label" htmlFor="saveAddress">
-                        Save this address for future use
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Options */}
-              <div className="card p-4 mb-5">
-                <h2 className="fw-medium mb-3">DELIVERY OPTIONS</h2>
-                {deliveryOptions.map((option) => (
-                  <div className="form-check mb-2" key={option.id}>
-                    <Controller
-                      name="delivery"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          className="form-check-input"
-                          type="radio"
-                          id={option.id}
-                          checked={field.value === option.id}
-                          onChange={() => {
-                            field.onChange(option.id);
-                            handleDeliveryChange(option.fee);
-                          }}
-                        />
-                      )}
-                    />
-                    <label className="form-check-label" htmlFor={option.id}>
-                      {option.label}{" "}
-                      <span className="float-end">
-                        &nbsp;&nbsp;₦{option.fee}
-                      </span>
-                    </label>
+              {error && <p className="checkout-error">{error}</p>}
+            </section>
+            <aside className="checkout-summary">
+              <h2>Your bag <small>({items.length})</small></h2>
+              <div className="summary-items">
+                {items.map((item) => (
+                  <div className="summary-item" key={item.id}>
+                    <img src={imageFor(item)} alt="" />
+                    <div><b>{item.name}</b><small>Qty {item.quantity}</small></div>
+                    <span>{money(Number(item.price) * item.quantity)}</span>
                   </div>
                 ))}
-                <p className="text-danger">{errors.delivery?.message}</p>
               </div>
-            </div>
-
-            {/* Order Summary */}
-            <div className="col-lg-4">
-              <div className="card p-4">
-                <h2 className="fw-medium">Order Summary</h2>
-                <p className="text-muted">
-                  Subtotal: ₦{" "}
-                  {calculateSubtotal().toLocaleString("en-NG", {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-                <p className="text-muted">Delivery: ₦ {deliveryFee}</p>
-                <h4 className="text-dark">
-                  Total: ₦{" "}
-                  {calculateTotal().toLocaleString("en-NG", {
-                    minimumFractionDigits: 2,
-                  })}
-                </h4>
-                <button
-                  style={{ background: "#cedfc3" }}
-                  type="submit"
-                  className="btn w-100 mt-3 fw-bolder d-flex justify-content-center align-items-center"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>
-                      Processing...
-                    </>
-                  ) : (
-                    "Proceed to Payment"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
+              <div className="summary-line"><span>Subtotal</span><b>{money(subtotal)}</b></div>
+              <div className="summary-line"><span>Delivery</span><b>{money(fee)}</b></div>
+              <div className="summary-line total"><span>Total</span><b>{money(subtotal + fee)}</b></div>
+              <button type="submit" className="button button-dark pay-button" disabled={loading || loadingDetails || !deliveryAreas.length || !delivery}>
+                {loading ? "Opening Paystack…" : "Continue to payment ↗"}
+              </button>
+              <p className="secure-note">Secure payment by Paystack · Cards, bank transfer, and more</p>
+            </aside>
+          </form>
+        ) : (
+          <div className="empty-products"><span>♡</span><h3>Your bag is empty</h3><p>Add something lovely to your bag before checking out.</p><Link className="button button-dark" to="/shop">Explore the collection ↗</Link></div>
+        )}
+      </main>
       <Footer />
-    </>
+    </div>
   );
 };
 

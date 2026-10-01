@@ -1,0 +1,108 @@
+/* Keep storefront navigation within reach while browsing long pages. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 130;
+}
+
+.site-header .main-nav .mobile-drawer-signin {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .site-header .main-nav .mobile-drawer-signin {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 48px;
+    margin-top: 18px;
+    padding: 0 14px;
+    border: 1px solid #dfe8df;
+    border-radius: 8px;
+    background: #eef3ed;
+    color: var(--wine-deep);
+    font: 600 12px var(--sans);
+    letter-spacing: normal;
+    text-decoration: none;
+    text-transform: none;
+  }
+
+  .site-header .main-nav .mobile-drawer-signin:hover {
+    background: #e3ece3;
+    color: var(--wine-deep);
+  }
+
+  .site-header.mobile-menu-open .mobile-menu {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .site-header .main-nav,
+  .site-header .main-nav.is-open {
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .mobile-nav-head {
+    margin-bottom: 12px;
+    padding-top: 20px;
+    padding-bottom: 18px;
+  }
+
+  .mobile-nav-head > div {
+    min-width: 0;
+  }
+
+  .mobile-nav-head strong {
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-nav-head > button {
+    flex: 0 0 35px;
+  }
+
+  .site-header .main-nav .mobile-nav-links a {
+    min-height: 43px;
+  }
+
+  .mobile-account-links {
+    gap: 0;
+    margin-top: 16px;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .mobile-account-label {
+    margin-bottom: 5px;
+  }
+
+  .site-header .main-nav .mobile-account-links a,
+  .mobile-account-links > button {
+    min-height: 35px;
+  }
+}
+
+@media (max-width: 850px) {
+  .account-layout,
+  .account-content {
+    min-width: 0;
+  }
+
+  .account-page {
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .account-order-card,
+  .account-order-item,
+  .account-details-card,
+  .account-preference-card {
+    min-width: 0;
+  }
+
+  .account-order-item strong,
+  .account-order-item small {
+    overflow-wrap: anywhere;
+  }
+}

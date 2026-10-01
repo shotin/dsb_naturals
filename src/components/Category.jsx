@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../assets/css/category.css";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { HTTP } from "../utils";
 
 const Category = () => {
@@ -105,7 +105,7 @@ const Category = () => {
   return (
     <div className="container category-list-container">
       <h1
-        style={{ background: "#cedfc3" }}
+        style={{ background: "#111", color: "#fff" }}
         className="text-center fw-bolder mb-4"
       >
         CATEGORIES
@@ -148,7 +148,7 @@ const Category = () => {
                 {!cart[product.id] ? (
                   <button
                     className="btn w-100 fw-bolder"
-                    style={{ background: "#cedfc3" }}
+                    style={{ background: "#111", color: "#fff" }}
                     onClick={() => handleAddToCart(product)}
                   >
                     Add to Cart
@@ -157,7 +157,7 @@ const Category = () => {
                   <div className="d-flex justify-content-between align-items-center">
                     <button
                       className="btn"
-                      style={{ background: "#cedfc3" }}
+                      style={{ background: "#111", color: "#fff" }}
                       onClick={() => handleDecreaseQuantity(product)}
                     >
                       -
@@ -165,7 +165,7 @@ const Category = () => {
                     <span>{getProductQuantity(product.id)}</span>
                     <button
                       className="btn"
-                      style={{ background: "#cedfc3" }}
+                      style={{ background: "#111", color: "#fff" }}
                       onClick={() => handleIncreaseQuantity(product)}
                     >
                       +

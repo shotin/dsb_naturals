@@ -1,6 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { routes } from "./routing/routes";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
+import BackToTop from "./components/BackToTop.jsx";
+import WhatsAppWidget from "./components/WhatsAppWidget.jsx";
+
+function StorefrontWhatsAppWidget() {
+  const { pathname } = useLocation();
+  return pathname.startsWith("/admin-naturals-dsp") ? null : <WhatsAppWidget />;
+}
 
 const renderRoutes = (routesArray) => {
   return routesArray.map((route) => {
@@ -55,6 +62,8 @@ const renderRoutes = (routesArray) => {
 function App() {
   return (
     <BrowserRouter>
+      <BackToTop />
+      <StorefrontWhatsAppWidget />
       <Routes>{renderRoutes(routes)}</Routes>
     </BrowserRouter>
   );

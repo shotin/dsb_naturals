@@ -153,7 +153,7 @@ const RegisterForm = ({ onSubmit }) => {
 
         <div>
           <button
-            style={{ background: "#cedfc3" }}
+            style={{ background: "#111", color: "#fff" }}
             type="submit"
             className="btn w-100 py-2 fw-bolder text-uppercase mt-3 mb-3"
           >

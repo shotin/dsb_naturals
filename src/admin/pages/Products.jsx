@@ -1,7 +1,7 @@
 // src/admin/pages/Products.jsx
 import { useEffect, useState } from "react";
 import { HTTP } from "../../utils";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -23,6 +23,7 @@ const Products = () => {
     category_id: "",
     price: "",
     stock_status: "In stock",
+    stock_quantity: "",
     description: "",
     image: null,
   });
@@ -35,6 +36,7 @@ const Products = () => {
       category_id: "",
       price: "",
       stock_status: "In stock",
+      stock_quantity: "",
       description: "",
       image: null,
     });
@@ -49,7 +51,7 @@ const Products = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCategories(response.data.categories); // Adjust depending on your API structure
-      } catch (err) {
+      } catch {
         toast.error("Failed to load categories");
       }
     };
@@ -151,6 +153,7 @@ const Products = () => {
       formData.append("price", editProduct.price);
       formData.append("category_id", editProduct.category_id);
       formData.append("stock_status", editProduct.stock_status);
+      formData.append("stock_quantity", editProduct.stock_quantity ?? "");
 
       // Only append the file if the user selected a new one
       if (editProduct.imageFile) {
@@ -199,52 +202,39 @@ const Products = () => {
     return <div className="alert alert-danger text-center mt-5">{error}</div>;
   }
 
-  const deleteProduct = (productId, setProducts) => {
-    // Render a custom toast with buttons
-    const ToastContent = ({ closeToast }) => (
-      <div>
+  const deleteProduct = (productId) => {
+    toast.custom((toastId) => (
+      <div className="dsp-toast-confirm">
         <p>Are you sure you want to delete this product?</p>
-        <div className="mt-2">
-          <button
-            className="btn btn-sm btn-danger me-2"
-            onClick={async () => {
-              try {
-                const token = localStorage.getItem("token");
-                await HTTP.delete(`/admin/products/${productId}/delete`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                });
-
-                // setProducts((prev) => prev.filter((p) => p.id !== productId));
-                toast.success("Product deleted successfully!");
-              } catch (err) {
-                console.log(err);
-
-                toast.error(
-                  err.response?.data?.message || "Failed to delete product."
-                );
-              } finally {
-                closeToast();
-              }
-            }}
-          >
-            Yes
-          </button>
-          <button className="btn btn-sm btn-secondary" onClick={closeToast}>
-            No
-          </button>
+        <div className="dsp-toast-confirm-actions">
+          <button type="button" className="dsp-toast-confirm-delete" onClick={async () => {
+            try {
+              const token = localStorage.getItem("token");
+              await HTTP.delete(`/admin/products/${productId}/delete`, { headers: { Authorization: `Bearer ${token}` } });
+              toast.success("Product deleted successfully!");
+              const remainingOnPage = products.length - 1;
+              const targetPage = remainingOnPage === 0 && page > 1 ? page - 1 : page;
+              if (targetPage !== page) setPage(targetPage);
+              else await fetchProducts(targetPage);
+            } catch (err) {
+              toast.error(err.response?.data?.message || "Failed to delete product.");
+            } finally {
+              toast.dismiss(toastId);
+            }
+          }}>Delete</button>
+          <button type="button" className="dsp-toast-confirm-cancel" onClick={() => toast.dismiss(toastId)}>Cancel</button>
         </div>
       </div>
-    );
-
-    toast.info(<ToastContent />, { autoClose: false });
+    ), { duration: Infinity });
   };
 
   return (
     <div>
-      <h2>Products</h2>
+      <div className="admin-page-heading"><div><h2>Products</h2><p>Manage your catalogue, pricing and available inventory.</p></div>
       <button className="btn btn-primary mb-3" onClick={openAddModal}>
         Add New Product
       </button>
+      </div>
 
       <table className="table table-striped mt-3">
         <thead>
@@ -262,7 +252,7 @@ const Products = () => {
           {products.map((p, idx) => (
             <tr key={p?.id}>
               <td>{idx + 1 + (page - 1) * 10}</td>
-              <td>{p?.name}</td>
+              <td><strong>{p?.name}</strong></td>
               <td>{p?.category?.name || "-"}</td>
               <td>{p?.price}</td>
               <td>
@@ -285,6 +275,7 @@ const Products = () => {
                     p?.stock_status
                   )}
                 </button>
+                <span className={`admin-stock-count ${Number(p?.stock_quantity) < 10 ? "low" : ""}`}>{p?.stock_quantity == null ? "Qty not set" : `${p.stock_quantity} left`}</span>
               </td>
               <td>{new Date(p?.created_at).toLocaleString()}</td>
               <td>
@@ -393,6 +384,7 @@ const Products = () => {
                     }
                   />
                 </div>
+                <div className="mb-3"><label className="form-label">Quantity in stock:</label><input type="number" min="0" className="form-control" value={editProduct.stock_quantity ?? ""} onChange={(e) => setEditProduct({ ...editProduct, stock_quantity: e.target.value })} /></div>
                 <div className="mb-3">
                   <label className="form-label">Stock Status:</label>
                   <select
@@ -536,6 +528,7 @@ const Products = () => {
                     }
                   />
                 </div>
+                <div className="mb-3"><label>Quantity in stock:</label><input type="number" min="0" className="form-control" value={newProduct.stock_quantity} onChange={(e) => setNewProduct({ ...newProduct, stock_quantity: e.target.value })} /></div>
                 <div className="mb-3">
                   <label>Stock Status:</label>
                   <select

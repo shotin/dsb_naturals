@@ -1,128 +1,345 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import {
+  FaBars,
+  FaChevronDown,
+  FaHeart,
+  FaSearch,
+  FaShoppingBag,
+  FaTimes,
+  FaUser,
+} from "react-icons/fa";
 import { images } from "../constants";
-import { FaShoppingCart, FaUserCircle } from "react-icons/fa";
-import BModal from "./BModal/BModal";
-import Login from "./Login";
+import { HTTP } from "../utils";
+
+const readCount = (key) => {
+  try {
+    return Object.keys(JSON.parse(localStorage.getItem(key)) || {}).length;
+  } catch {
+    return 0;
+  }
+};
 
 const Navbar = () => {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [cart, setCart] = useState(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart"));
-    return savedCart ? Object.values(savedCart) : [];
-  });
+  const [cartCount, setCartCount] = useState(readCount("cart"));
+  const [wishlistCount, setWishlistCount] = useState(readCount("wishlist"));
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem("user") || "null"),
+  );
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const [cartLength, setCartLength] = useState(cart.length);
-  const [user, setUser] = useState(() => {
-    // Get user from localStorage when component mounts
-    return JSON.parse(localStorage.getItem("user")) || null;
-  });
+  useEffect(() => {
+    const sync = () => {
+      setCartCount(readCount("cart"));
+      setWishlistCount(readCount("wishlist"));
+      setUser(JSON.parse(localStorage.getItem("user") || "null"));
+    };
+    window.addEventListener("storage", sync);
+    window.addEventListener("storefront:updated", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("storefront:updated", sync);
+    };
+  }, []);
 
-  const handleClose = () => setIsOpen(false);
-  const handleOpen = () => setIsOpen(true);
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    if (!searchOpen || !searchTerm.trim()) {
+      setSearchResults([]);
+      return undefined;
+    }
+    let active = true;
+    setSearching(true);
+    const timer = window.setTimeout(() => {
+      HTTP.get("/products", {
+        params: { search: searchTerm.trim(), per_page: 6 },
+      })
+        .then((response) => {
+          if (active) setSearchResults(response.data?.data || []);
+        })
+        .catch(() => {
+          if (active) setSearchResults([]);
+        })
+        .finally(() => {
+          if (active) setSearching(false);
+        });
+    }, 220);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [searchOpen, searchTerm]);
+
+  const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
-    navigate("/"); // redirect to home or wherever
+    setIsOpen(false);
+    setAccountOpen(false);
+    navigate("/");
   };
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      const cartFromStorage = JSON.parse(localStorage.getItem("cart")) || {};
-      setCart(Object.values(cartFromStorage));
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    setCartLength(cart.length);
-  }, [cart]);
-
-  useEffect(() => {
-    const syncUser = () => {
-      setUser(JSON.parse(localStorage.getItem("user")) || null);
-    };
-    window.addEventListener("storage", syncUser);
-    return () => window.removeEventListener("storage", syncUser);
-  }, []);
 
   return (
     <>
-      <nav className="app__bg-home navbar navbar-expand-md navbar-dark position-absolute mb-5 top-0 right-0 p-3 me-4 w-100">
-        <div className="container d-flex justify-content-between align-items-center">
-          <div
-            className="d-flex align-items-center"
-            style={{ cursor: "pointer" }}
-            onClick={() => navigate("/")}
-          >
-            <img
-              src={images.dsp}
-              alt="Luminé Naturals Logo"
-              className="w-20 h-20 rounded-circle"
-              style={{ maxWidth: "60px", maxHeight: "60px" }}
-            />
-            <span className="ms-2 fw-bolder text-xl">
-              DSP <br /> NATURAL
-            </span>
-          </div>
-
-          <div className="d-flex ms-auto align-items-center app__collection">
-            <div
-              className="cart-icon me-3 position-relative"
-              onClick={() => navigate("/cart")}
+      <div className="announcement">
+        A little glow goes a long way{" "}
+        <span>Complimentary Lagos delivery on orders over ₦100,000</span>
+      </div>
+      <header
+        className={isOpen ? "site-header mobile-menu-open" : "site-header"}
+      >
+        <button
+          className="mobile-menu icon-button"
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <FaTimes /> : <FaBars />}
+        </button>
+        <Link to="/" className="brand-lockup">
+          <img src={images.dspLogo} alt="DSP Naturals" />
+        </Link>
+        <nav
+          id="storefront-mobile-nav"
+          className={isOpen ? "main-nav is-open" : "main-nav"}
+        >
+          <div className="mobile-nav-head">
+            <div>
+              <span>DSP NATURALS</span>
+              <strong>Hi, {user?.first_name || "there"}</strong>
+              <small>
+                {user
+                  ? "Your beauty, all in one place"
+                  : "Find your everyday ritual"}
+              </small>
+            </div>
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={() => setIsOpen(false)}
             >
-              <FaShoppingCart
-                className="text-light"
-                style={{ fontSize: "1.5rem", cursor: "pointer" }}
-              />
-              {cartLength > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  {cartLength}
-                </span>
+              <FaTimes />
+            </button>
+          </div>
+          <div className="mobile-nav-links">
+            <NavLink to="/" end onClick={() => setIsOpen(false)}>
+              Home
+            </NavLink>
+            <NavLink to="/shop" onClick={() => setIsOpen(false)}>
+              Shop
+            </NavLink>
+            <NavLink to="/about" onClick={() => setIsOpen(false)}>
+              Our story
+            </NavLink>
+            <NavLink to="/contact" onClick={() => setIsOpen(false)}>
+              Contact
+            </NavLink>
+          </div>
+          {user ? (
+            <div className="mobile-account-links">
+              <span className="mobile-account-label">YOUR ACCOUNT</span>
+              <Link to="/profile" onClick={() => setIsOpen(false)}>
+                Account overview
+              </Link>
+              <Link
+                to="/profile?section=orders"
+                onClick={() => setIsOpen(false)}
+              >
+                Orders
+              </Link>
+              <Link
+                to="/profile?section=reviews"
+                onClick={() => setIsOpen(false)}
+              >
+                Pending reviews
+              </Link>
+              <Link to="/wishlist" onClick={() => setIsOpen(false)}>
+                Wishlist
+              </Link>
+              <Link
+                to="/profile?section=recent"
+                onClick={() => setIsOpen(false)}
+              >
+                Recently viewed
+              </Link>
+              <Link
+                to="/profile?section=newsletter"
+                onClick={() => setIsOpen(false)}
+              >
+                Newsletter preferences
+              </Link>
+              <button type="button" onClick={logout}>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link
+              className="mobile-drawer-signin"
+              to="/login"
+              onClick={() => setIsOpen(false)}
+            >
+              <FaUser /> Sign in to your account
+            </Link>
+          )}
+        </nav>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="icon-button search-action"
+            aria-label="Search products"
+            onClick={() => setSearchOpen(!searchOpen)}
+          >
+            <FaSearch />
+          </button>
+          <Link to="/wishlist" className="icon-button" aria-label="Wishlist">
+            <FaHeart />
+            <i>{wishlistCount}</i>
+          </Link>
+          <Link to="/cart" className="icon-button" aria-label="Shopping bag">
+            <FaShoppingBag />
+            <i>{cartCount}</i>
+          </Link>
+          {user ? (
+            <div className="header-account">
+              <button
+                type="button"
+                onClick={() => setAccountOpen((open) => !open)}
+                className="header-login text-white fw-bolder"
+                aria-expanded={accountOpen}
+              >
+                <FaUser /> <span>Hi, {user.first_name || "there"}</span>
+                <FaChevronDown className="account-chevron" />
+              </button>
+              {accountOpen && (
+                <div className="header-account-menu">
+                  <Link to="/profile" onClick={() => setAccountOpen(false)}>
+                    Account overview
+                  </Link>
+                  <Link
+                    to="/profile?section=orders"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Orders
+                  </Link>
+                  <Link
+                    to="/profile?section=reviews"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Pending reviews
+                  </Link>
+                  <Link to="/wishlist" onClick={() => setAccountOpen(false)}>
+                    Wishlist
+                  </Link>
+                  <Link
+                    to="/profile?section=recent"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Recently viewed
+                  </Link>
+                  <Link
+                    to="/profile?section=newsletter"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Newsletter preferences
+                  </Link>
+                  <button type="button" onClick={logout}>
+                    Sign out
+                  </button>
+                </div>
               )}
             </div>
-
-            {/* Switch between Login and Logout */}
-            {user ? (
-              <>
-                <div className="profile-icon me-3"   onClick={() => navigate("/profile")}>
-                  <FaUserCircle
-                    className="text-light"
-                    style={{ fontSize: "1.5rem", cursor: "pointer" }}
-                  />
-                </div>
-                <div
-                  onClick={handleLogout}
-                  className="login-text btn btn-danger"
-                >
-                  <span className="fw-bolder">Logout</span>
-                </div>
-              </>
-            ) : (
-              <div onClick={handleOpen} className="login-text btn btn-light">
-                <span className="text-dark fw-bolder">Login</span>
+          ) : (
+            <Link to="/login" className="header-login text-white fw-bolder">
+              <FaUser /> <span>Sign in</span>
+            </Link>
+          )}
+        </div>
+      </header>
+      {isOpen && (
+        <button
+          type="button"
+          className="mobile-nav-backdrop"
+          aria-label="Close navigation menu"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      {searchOpen && (
+        <section className="search-panel">
+          <div className="search-panel-inner">
+            <label className="search-field">
+              <FaSearch />
+              <input
+                autoFocus
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search any product…"
+                aria-label="Search any product"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchTerm("");
+                }}
+              >
+                Close
+              </button>
+            </label>
+            {searchTerm.trim() && (
+              <div className="search-results">
+                {searching ? (
+                  <p>Searching the collection…</p>
+                ) : searchResults.length ? (
+                  searchResults.map((product) => (
+                    <Link
+                      to={`/product/${product.id}`}
+                      key={product.id}
+                      onClick={() => {
+                        setSearchOpen(false);
+                        setSearchTerm("");
+                      }}
+                    >
+                      <img
+                        src={
+                          product.image ||
+                          "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=120&q=80"
+                        }
+                        alt=""
+                      />
+                      <span>{product.name}</span>
+                      <b>
+                        ₦{Number(product.price || 0).toLocaleString("en-NG")}
+                      </b>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No products found. Try a different search.</p>
+                )}
               </div>
             )}
           </div>
-        </div>
-      </nav>
-
-      {/* Login Modal */}
-      <BModal keyboard={false} show={isOpen} onHide={handleClose} size="md">
-        <Login
-          onClose={() => {
-            handleClose();
-            // Refresh user after login
-            setUser(JSON.parse(localStorage.getItem("user")) || null);
-          }}
-        />
-      </BModal>
+        </section>
+      )}
     </>
   );
 };
-
 export default Navbar;
