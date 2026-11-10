@@ -73,6 +73,41 @@
 @media(max-width:600px){.hero-controls{right:18px;top:315px;bottom:auto;gap:8px}.hero-controls>button{width:29px;height:29px}.back-to-top{right:15px;bottom:16px;width:43px;height:43px}}
 @media(max-width:600px){.auth-page{padding:44px 16px 60px}.auth-card{padding:26px 21px}.auth-fields-two{grid-template-columns:1fr;gap:16px}.auth-back{margin-bottom:24px}}
 
+/* DSP Naturals storefront palette: clean white surfaces with black controls. */
+:root{--wine:#111;--wine-deep:#050505;--gold:#fff;--cream:#fff;--paper:#fff;--sage:#f2f3f2;--ink:#171717;--muted:#666;--line:#e6e6e6}
+.announcement,.site-header,.trust-strip,.story-banner,.site-footer{background:#080808;color:#fff}
+.announcement span,.main-nav a,.header-actions .icon-button,.header-login,.brand-lockup{color:#fff!important}
+.main-nav a:after{background:#fff}
+.icon-button i{background:#fff;color:#111}
+.button-dark,.add-bag:hover,.add-bag:focus-visible,.quick-view:hover,.quick-view:focus-visible,.newsletter-band form button{background:#111;color:#fff!important}
+.button-light,.add-bag{background:#f1f1f1;color:#111!important}
+.button-light:hover,.add-bag:hover{background:#111;color:#fff!important}
+.newsletter-band{background:#fff;border-top:1px solid var(--line)}
+.newsletter-band .eyebrow,.newsletter-band h2,.newsletter-band p{color:#111}
+.footer-main h3,.footer-main>div>a:hover,.footer-bottom{color:#eee}
+.hero-copy h1,.page-title-panel h1,.about-hero h1,.section-heading h2,.product-description-section h2,.related-products-section h2,.product-reviews-section h2{color:#111}
+.eyebrow,.product-back,.product-category-link,.auth-options a,.auth-switch a,.payment-back-link{color:#222!important}
+.product-detail-image,.beauty-product-image,.search-results>a img,.category-card img{background:#fff}
+.main-nav.is-open{background:#080808}
+.footer-address{max-width:220px;margin:0;color:#eee;font-size:12px;line-height:1.8}
+
+/* Product summary hierarchy; the longer product details section below stays as-is. */
+.product-detail-copy{padding:clamp(22px,3vw,38px);border:1px solid #ececec;border-radius:14px;background:#fff;box-shadow:0 12px 36px #00000008}
+.product-detail-copy>.eyebrow{font-size:9px;color:#666}
+.product-detail-copy h1{font:600 clamp(32px,3.3vw,47px)/1.12 var(--sans);letter-spacing:-.035em;color:#111;margin:12px 0 15px;text-transform:none}
+.product-summary-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #eee;border-bottom:1px solid #eee}
+.product-summary-meta .product-review-summary{margin:0;color:#222;gap:8px;font-size:11px}
+.product-summary-meta .review-stars{color:#111}
+.product-summary-muted{color:#777}
+.product-summary-new{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#555}
+.product-summary-meta .product-category-link{margin:0;font-size:10px;text-decoration:none}
+.product-detail-price{display:inline-flex;align-items:center;margin:17px 0 13px;padding:9px 13px;border-radius:7px;background:#f4f4f4;color:#111;font-size:20px;font-weight:700}
+.product-detail-copy>p.product-summary-description{max-width:unset;margin:0 0 18px;padding-left:14px;border-left:2px solid #111;color:#505050;font-size:13px;line-height:1.8}
+.product-detail-image{background:#fff;border:1px solid #f0f0f0;border-radius:12px}
+.product-detail-image>img{object-fit:contain}
+.story-banner .eyebrow{color:#fff}
+@media(max-width:700px){.product-detail-copy{padding:21px 18px}.product-detail-copy h1{font-size:31px}.product-detail-price{font-size:18px}}
+
 /* Soft, polished storefront and admin notifications. */
 [data-sonner-toaster]{font-family:var(--sans)!important}
 [data-sonner-toast].dsp-toast{min-height:58px;padding:15px 17px;border:1px solid #e7ddd3;border-radius:15px;background:#fffdfa;color:#263b32;box-shadow:0 14px 40px #1b2a221f}

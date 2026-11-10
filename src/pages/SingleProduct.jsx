@@ -79,6 +79,8 @@ const SingleProduct = () => {
     toast[willSave ? "success" : "info"](willSave ? "Saved to your wishlist" : "Removed from your wishlist");
   };
 
+  const summaryDescription = product?.short_description || product?.shortDescription || product?.description?.split(/(?<=[.!?])\s+/)[0] || "A thoughtful addition to your everyday skincare and beauty routine.";
+
   return <div className="storefront"><Navbar /><main className="product-detail-page">
     {loading ? <div className="empty-products">Loading your product...</div> : !product ? <div className="empty-products"><h3>We couldn't find that product</h3><Link className="button button-dark" to="/shop">Back to the collection</Link></div> : <>
       <Link className="product-back" to="/shop"><FaArrowLeft /> Back to shop</Link>
@@ -87,8 +89,17 @@ const SingleProduct = () => {
           <img src={imageFor(product)} alt={product.name} style={zoom.active ? { transformOrigin: `${zoom.x}% ${zoom.y}%`, transform: "scale(2)" } : undefined} />
           <span className="product-zoom-hint"><FaSearchPlus /> Hover to magnify</span>
         </div>
-        <div className="product-detail-copy"><span className="eyebrow">A little care for you</span><h1>{product.name}</h1><div className="product-review-summary"><span>{reviewSummary.average || "New"}</span>{reviewSummary.count > 0 && <><span className="review-stars">{Array.from({ length: 5 }, (_, index) => <FaStar key={index} className={index < Math.round(reviewSummary.average) ? "is-filled" : ""} />)}</span><span>({reviewSummary.count} reviews)</span></>}</div><div className="product-detail-price">{money(product.price)}</div><p>{product.description || "A thoughtful addition to your everyday skincare and beauty ritual."}</p>
-          {product.category && <Link className="product-category-link" to={`/shop?category=${encodeURIComponent(product.category.id)}`}>Shop {product.category.name} <span>↗</span></Link>}
+        <div className="product-detail-copy">
+          <span className="eyebrow">A little care for you</span>
+          <h1>{product.name}</h1>
+          <div className="product-summary-meta">
+            <div className="product-review-summary">
+              {reviewSummary.count > 0 ? <><span className="review-stars">{Array.from({ length: 5 }, (_, index) => <FaStar key={index} className={index < Math.round(reviewSummary.average) ? "is-filled" : ""} />)}</span><span>{reviewSummary.average} <span className="product-summary-muted">({reviewSummary.count} reviews)</span></span></> : <span className="product-summary-new">New arrival</span>}
+            </div>
+            {product.category && <Link className="product-category-link" to={`/shop?category=${encodeURIComponent(product.category.id)}`}>{product.category.name}</Link>}
+          </div>
+          <div className="product-detail-price">{money(product.price)}</div>
+          <p className="product-summary-description">{summaryDescription}</p>
           <div className="product-detail-stock fw-bolder">{product.stock_quantity !== null && product.stock_quantity !== undefined && Number(product.stock_quantity) < 10 ? (Number(product.stock_quantity) === 0 ? "Currently out of stock" : `Only ${product.stock_quantity} left`) : String(product.stock_status || "in stock").replaceAll("_", " ")}</div>
           <div className="detail-actions"><div className="quantity-stepper"><button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span>{quantity}</span><button type="button" onClick={() => setQuantity(quantity + 1)}>+</button></div><button className="button button-dark" onClick={addToBag}><FaPlus /> Add to bag</button><button className={saved ? "detail-save saved" : "detail-save"} onClick={toggleWishlist} aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}><FaHeart /></button></div><div className="detail-perks"><span>Carefully selected essentials</span><span>Secure Paystack checkout</span><span>Delivery across Lagos and beyond</span></div>
         </div>

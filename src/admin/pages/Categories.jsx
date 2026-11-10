@@ -12,6 +12,7 @@ const Categories = () => {
   const [saving, setSaving] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState("");
+  const [categoryImageFile, setCategoryImageFile] = useState(null);
 
   const token = localStorage.getItem("token");
 
@@ -40,6 +41,7 @@ const Categories = () => {
     setEditingCategory(null);
     setNewCategoryName("");
     setCategoryImage("");
+    setCategoryImageFile(null);
     setShowModal(true);
   };
 
@@ -52,6 +54,7 @@ const Categories = () => {
       setEditingCategory(response.data);
       setNewCategoryName(response.data.name);
       setCategoryImage(response.data.image || "");
+      setCategoryImageFile(null);
       setShowModal(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to fetch category");
@@ -61,13 +64,18 @@ const Categories = () => {
   // Save (add or update)
   const handleSave = async () => {
     if (!newCategoryName.trim()) return toast.error("Name is required");
+    if (!editingCategory && !categoryImageFile && !categoryImage.trim()) return toast.error("Choose a category image");
     setSaving(true);
     try {
+      const formData = new FormData();
+      formData.append("name", newCategoryName.trim());
+      if (categoryImageFile) formData.append("image", categoryImageFile);
+      else if (categoryImage.trim()) formData.append("image_url", categoryImage.trim());
       if (editingCategory) {
-        // Update
-        const response = await HTTP.patch(
+        formData.append("_method", "PATCH");
+        const response = await HTTP.post(
           `/admin/categories/${editingCategory.id}/update`,
-          { name: newCategoryName, image: categoryImage || null },
+          formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setCategories((prev) =>
@@ -75,10 +83,9 @@ const Categories = () => {
         );
         toast.success("Category updated successfully!");
       } else {
-        // Add
         const response = await HTTP.post(
           "/admin/categories/add",
-          { name: newCategoryName, image: categoryImage || null },
+          formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setCategories((prev) => [response.data, ...prev]);
@@ -200,14 +207,18 @@ const Categories = () => {
                   />
                 </div>
                 <div className="mb-3">
-                  <label>Image URL:</label>
+                  <label>Category image:</label>
                   <input
-                    type="url"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     className="form-control"
-                    placeholder="https://..."
-                    value={categoryImage}
-                    onChange={(e) => setCategoryImage(e.target.value)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setCategoryImageFile(file);
+                      if (file) setCategoryImage(URL.createObjectURL(file));
+                    }}
                   />
+                  <small className="text-muted">Select an image to upload to ImageKit. Leave empty to keep the current image.</small>
                   {categoryImage && <img src={categoryImage} alt="Category preview" className="mt-2" style={{ maxWidth: "100%", maxHeight: 150, objectFit: "cover" }} />}
                 </div>
               </div>
